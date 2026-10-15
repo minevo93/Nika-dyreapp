@@ -799,7 +799,7 @@
     if (d.sessionEnded && !["reset","reset-confirm"].includes(a)) return;
     if (a === "logout" && d.dog) {
       if (cloudMode) { handleAccountAction('cloud-logout', b); return; }
-      modal(`<h2 id="dialog-title">Avslutte den lokale økten?</h2><p>Dyreprofiler og historikk beholdes på denne enheten. ${allPets().some(p=>p.active)?"En tur pågår; tiden fortsetter til du åpner riktig profil og avslutter den.":""}</p><p class="notice">Demoen har ingen konto eller passord. Utlogging skjuler oversikten, men er ikke en sikker tilgangssperre. Andre som bruker denne nettleseren kan åpne profilene igjen.</p><div class="form-actions">${btn("Logg ut","logout-confirm","")}${btn("Avbryt","close")}</div>`);
+      modal(`<section class="logout-panel"><h2 id="dialog-title">Logge ut?</h2><p>Du tas til forsiden. Dyreprofiler og historikk beholdes på denne enheten.</p>${allPets().some(p=>p.active)?"<p>En tur pågår. Tiden fortsetter til du åpner profilen og avslutter turen.</p>":""}<p class="notice">Demoen har ingen konto eller passord. Utlogging låser ikke profilene. Andre som bruker denne nettleseren kan åpne dem igjen.</p><div class="form-actions">${btn("Logg ut","logout-confirm","")}${btn("Avbryt","close")}</div></section>`);
       return;
     }
     if (a === "logout-confirm" && d.dog) {
