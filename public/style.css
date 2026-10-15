@@ -158,6 +158,9 @@ nav {
   display: flex;
   gap: 5px;
 }
+nav:empty {
+  display: none;
+}
 nav button {
   border: 0;
   background: transparent;
@@ -925,7 +928,7 @@ footer p {
   }
   .welcome-top h1 {
     letter-spacing: -1.5px;
-    font-size: 44px;
+    font-size: clamp(34px, 10.3vw, 44px);
     max-width: 350px;
     margin: 15px auto;
   }
