@@ -1,0 +1,14 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const sandbox={window:{},Date,Math,Number};vm.runInNewContext(fs.readFileSync('public/gps.js','utf8'),sandbox);const gps=sandbox.window.NikaGPS;
+let success,failure,starts=0,clears=0,saved=0,clock=Date.now()-25000,status='';
+const recorder=gps.recorder({now:()=>clock,geolocation:{watchPosition(ok,err){starts++;success=ok;failure=err;return starts},clearWatch(){clears++}},onPoint(){saved++},onStatus(s){status=s}});
+const points=[];const position=(lat=59,lng=10,accuracy=5)=>({coords:{latitude:lat,longitude:lng,accuracy},timestamp:clock});
+assert.equal(starts,0);recorder.start(points);recorder.start(points);assert.equal(starts,1);
+success(position());assert.equal(points.length,1);clock+=6000;success(position(59.001));assert.equal(points.length,2);assert.ok(gps.metres(points)>110&&gps.metres(points)<113);
+clock+=6000;success(position(59.002,10,200));assert.equal(points.length,2);clock+=6000;success(position(59.003));assert.notEqual(points[1].segment,points[2].segment);assert.ok(gps.metres(points)<113,'no line across bad-signal gap');
+const stale=success;recorder.stop();assert.equal(clears,1);clock+=6000;stale(position(59.004));assert.equal(points.length,3,'callbacks after pause ignored');
+recorder.start(points);clock+=6000;success(position(59.005));assert.notEqual(points[2].segment,points[3].segment);assert.equal(starts,2);
+failure({code:1});assert.equal(recorder.active,false);assert.match(status,/ikke tillatt/);
+assert.equal(gps.valid(points),true);assert.equal(gps.valid([{...points[0],lat:91}]),false);assert.equal(gps.valid([points[1],points[0]]),false);assert.equal(gps.valid([{...points[0],segment:'<script>'}]),false);
+assert.match(gps.route(points),/uten bakgrunnskart/);assert.equal(gps.route(points).includes('<script>'),false);
+assert.equal(saved,4);console.log('PASS_GPS opt-in, duplicate start, metre calculation, accuracy gaps, stale callback, pause/resume, permission denial, validation and safe route SVG');

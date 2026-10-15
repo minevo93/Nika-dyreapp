@@ -2,6 +2,7 @@ export function createAccount({config, createClient, storage = () => window.loca
   const storageKey = 'nika-auth-v1';
   let client, user = null, revision = null, queue = Promise.resolve(), failed = null, generation = 0, signingIn = false;
   const listeners = new Set();
+  let workspace = "personal", familyInfo = null;
   let emailBusy = false, pendingEmail = '', nextEmailAt = 0;
   const signal = (type, detail) => listeners.forEach(fn => fn(type, detail));
   function getClient() {
@@ -98,8 +99,38 @@ export function createAccount({config, createClient, storage = () => window.loca
     if(error || !["admin","member"].includes(data?.role)) throw Error("Kunne ikke kontrollere tilgangen. Prøv igjen.");
     return data;
   }
+  async function familyRequest(action, body = {}) {
+    if (!user) throw Error('Du må logge inn først.');
+    const {data,error} = await getClient().rpc('nika_family', {action,body});
+    if(error) throw Error(action === 'save' ? 'Familieendringene kunne ikke lagres. En annen enhet kan ha nyere endringer. Eksporter øktdata før du oppdaterer siden.' : 'Kunne ikke fullføre familiehandlingen. Kontroller tilgang, invitasjonskode og forbindelse.');
+    return data;
+  }
+  async function familyContext() {
+    const data = await familyRequest('context');
+    familyInfo = data.family;
+    return familyInfo;
+  }
+  async function familyAction(action, body = {}) {
+    await queue;
+    if (!['create','join','invite','revoke','remove','leave','delete','rename'].includes(action)) throw Error('Ukjent handling.');
+    return familyRequest(action,body);
+  }
+  async function switchWorkspace(target) {
+    await queue;
+    if (!['personal','family'].includes(target)) throw Error('Ukjent oversikt.');
+    if(target === 'family' && !(await familyContext())) throw Error('Du er ikke med i en familie.');
+    storage().setItem('nika-workspace-'+user.id,target);
+    navigate('/');
+  }
   async function load() {
     if (!user) throw Error('Du må logge inn først.');
+    await familyContext();
+    workspace = storage().getItem('nika-workspace-'+user.id) === 'family' && familyInfo ? 'family' : 'personal';
+    if(workspace === 'family') {
+      const data=await familyRequest('load');
+      revision=data.revision;
+      return data.payload;
+    }
     const {data,error} = await getClient().from('nika_user_state').select('payload,revision').eq('user_id',user.id).maybeSingle();
     if (error) throw Error('Kunne ikke hente data fra kontoen. Prøv igjen når forbindelsen er tilbake.');
     revision = data?.revision ?? null;
@@ -113,6 +144,11 @@ export function createAccount({config, createClient, storage = () => window.loca
     queue = queue.then(async () => {
       if (failed) throw failed;
       if (generation !== currentGeneration || user?.id !== owner) throw Error('Økten er avsluttet.');
+      if (workspace === 'family') {
+        const data=await familyRequest('save',{payload:snapshot,revision});
+        if(generation !== currentGeneration)return;
+        revision=data.revision; signal('saved'); return;
+      }
       const table = getClient().from('nika_user_state');
       const operation = revision === null
         ? table.insert({user_id:owner,payload:snapshot,revision:0})
@@ -137,11 +173,13 @@ export function createAccount({config, createClient, storage = () => window.loca
   }
   async function removeData() {
     await queue;
+    if(workspace === 'family') throw Error('Avslutt delingen i Familie for å slette den delte oversikten. Private dyredata slettes fra privat oversikt.');
     if (!user) throw Error('Du må logge inn først.');
     const {error} = await getClient().from('nika_user_state').delete().eq('user_id',user.id);
     if (error) throw Error('Dataene kunne ikke slettes. Prøv igjen.');
     revision = null;
   }
-  return {enabled:config.enabled,providers,signIn,requestEmailCode,verifyEmailCode,restore,access,load,save,signOut,removeData,
+  return {enabled:config.enabled,providers,signIn,requestEmailCode,verifyEmailCode,restore,access,load,save,signOut,removeData,familyContext,familyAction,switchWorkspace,
+    get workspace(){return workspace;}, get family(){return familyInfo;},
     get user(){return user;}, get failed(){return failed;}, on(fn){listeners.add(fn);return()=>listeners.delete(fn);}};
 }

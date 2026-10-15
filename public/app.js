@@ -2,6 +2,9 @@
 (() => {
   const account = window.NikaAccount;
   let cloudMode = false, cloudReady = false;
+  const gps=window.NikaGPS.recorder({geolocation:navigator.geolocation,onPoint:()=>{save();updateGPS();},onStatus:()=>updateGPS()});
+  function updateGPS(){const panel=$('gps-panel');if(panel)panel.innerHTML=gpsPanel();}
+  function gpsPanel(){return `<p role="status">${html(gps.status)}</p><p class="subline">GPS er valgfritt og registrerer bare mens Nika er synlig. Ved skjermlås eller bytte av app pauses GPS. ${cloudMode && account.workspace==='family'?'Ruten deles med familien.':'Ruten lagres sammen med turen.'}</p><div class="form-actions">${btn(gps.active?'Sett GPS på pause':'Slå på GPS',gps.active?'gps-stop':'gps-start')}</div>${window.NikaGPS.route(d.active?.gps)}`;}
   const KEY = "nika-demo-v2",
     LEGACY = "nika-mvp-v1",
     PRE_MULTI = "nika-demo-v2-before-multi";
@@ -101,6 +104,7 @@
       w &&
       typeof w.id === "string" &&
       stamp(w.start) &&
+      window.NikaGPS.valid(w.gps) &&
       Array.isArray(w.events) &&
       w.events.every(evt) &&
       (!w.legacyCounts ||
@@ -179,6 +183,7 @@
     return [...(d.dog ? [petSnapshot()] : []),...d.otherPets];
   }
   function selectPet(id) {
+    gps.stop();
     if (id === d.petId) { d.addingPet=false; save(); closeModal(); go("home"); return; }
     const target=d.otherPets.find(p=>p.id===id);
     if (!target) return;
@@ -445,13 +450,15 @@
     else if (!d.dog || d.addingPet) onboarding();
     else dashboardPage();
     if (cloudMode) {
-      document.querySelector('.demo-tag').textContent = 'Privat konto';
-      $('data-location').textContent = 'Lagret på kontoen · Bare du har tilgang · Familiedeling kommer senere';
+      const shared=account.workspace==='family';
+      document.querySelector('.demo-tag').textContent = shared?'Delt familie':'Privat konto';
+      if(shared){const notice=document.createElement('div');notice.className='workspace-banner';notice.innerHTML=`<span>${icon('family')} <strong>${html(account.family?.name || 'Familien')}</strong> · Delt oversikt</span>${btn('Tilgang og oppdatering','sharing','secondary small')}`;$('content').prepend(notice);}
+      $('data-location').textContent = shared?'Lagret på kontoen · Delt med familien':'Lagret på kontoen · Privat oversikt';
       for (const el of document.querySelectorAll('.chat-help')) {
-        el.textContent = el.textContent.replace('Opplysningene lagres bare i denne nettleseren.', 'Opplysningene lagres privat på kontoen din.');
+        el.textContent = el.textContent.replace('Opplysningene lagres bare i denne nettleseren.', shared?'Opplysningene deles med familien.':'Opplysningene lagres privat på kontoen din.');
       }
       const trust = document.querySelector('.trust-row span');
-      if (trust) trust.textContent = 'Privat på kontoen';
+      if (trust) trust.textContent = shared?'Delt med familien':'Privat på kontoen';
       if (blocked) document.querySelectorAll('#content input,#content select,#content button,#pet-controls button,#pet-controls select,#nav button').forEach(el => el.disabled = true);
     }
     if (focus) $("content").focus({ preventScroll: true });
@@ -473,7 +480,7 @@
     // Match the requested reading order: title, supporting copy, then the family line.
     document.querySelector('.welcome-top').append(document.querySelector('.welcome-top .eyebrow'));
     const msgsEl = $("messages");
-    if (cloudMode) for (const el of document.querySelectorAll('.chat-help')) el.textContent = el.textContent.replace('Opplysningene lagres bare i denne nettleseren.', 'Opplysningene lagres privat på kontoen din.');
+    if (cloudMode) for (const el of document.querySelectorAll('.chat-help')) el.textContent = el.textContent.replace('Opplysningene lagres bare i denne nettleseren.', shared?'Opplysningene deles med familien.':'Opplysningene lagres privat på kontoen din.');
     msgsEl.scrollTop = msgsEl.scrollHeight;
     const form = $("onboard-form");
     if (form) form.onsubmit = (e) => {
@@ -547,7 +554,7 @@
   function profile() {
     const x = d.dog;
     $("page-body").innerHTML =
-      `<div class="two-cols">${card("Profilen til " + html(x.name), "paw", `<div class="photo-profile">${x.photo ? `<img src="${html(x.photo)}" alt="Profilbilde av ${html(x.name)}" width="76" height="76">` : icon("paw")}<div><strong>Profilbilde</strong>${btn(x.photo ? "Endre eller fjern bilde" : "Last opp bilde","photo")}</div></div><form id="profile-form">${field(x.species==="Hund"?"Hundens navn":"Dyrets navn", "dog-name", x.name, "text", 60)}<label class="field">Art<select id="dog-species">${SPECIES.map(s=>`<option${s===(x.species || "Hund")?" selected":""}>${s}</option>`).join("")}</select></label>${field("Rase, blandingshund eller ukjent rase", "dog-breed", x.breed)}${field("Alder ved registrering (år eller måneder)", "dog-age", x.age, "text", 50)}<label class="field">Kjønn<select name="dog-sex" id="dog-sex">${["Ikke oppgitt", "Hann", "Hunn"].map((s) => `<option${x.sex === s ? " selected" : ""}>${s}</option>`).join("")}</select></label>${errorSlot}<button class="btn">Lagre profil</button></form>`)}<div class="stack">${card("Deres lille hverdagsbok", "heart", '<p class="muted">Profilen hjelper deg å samle turer, måltider og familie. Alderen er den du oppga ved registrering, og oppdateres manuelt.</p>')}<div class="notice">${cloudMode ? "Dyredata lagres privat på kontoen din. Familiedeling er ikke aktivert ennå." : "Nika er en lokal demo. Dataene deles ikke og er ingen sikkerhetskopi."} Vi gir ikke individuelle helse- eller kostråd.</div></div></div>`;
+      `<div class="two-cols">${card("Profilen til " + html(x.name), "paw", `<div class="photo-profile">${x.photo ? `<img src="${html(x.photo)}" alt="Profilbilde av ${html(x.name)}" width="76" height="76">` : icon("paw")}<div><strong>Profilbilde</strong>${btn(x.photo ? "Endre eller fjern bilde" : "Last opp bilde","photo")}</div></div><form id="profile-form">${field(x.species==="Hund"?"Hundens navn":"Dyrets navn", "dog-name", x.name, "text", 60)}<label class="field">Art<select id="dog-species">${SPECIES.map(s=>`<option${s===(x.species || "Hund")?" selected":""}>${s}</option>`).join("")}</select></label>${field("Rase, blandingshund eller ukjent rase", "dog-breed", x.breed)}${field("Alder ved registrering (år eller måneder)", "dog-age", x.age, "text", 50)}<label class="field">Kjønn<select name="dog-sex" id="dog-sex">${["Ikke oppgitt", "Hann", "Hunn"].map((s) => `<option${x.sex === s ? " selected" : ""}>${s}</option>`).join("")}</select></label>${errorSlot}<button class="btn">Lagre profil</button></form>`)}<div class="stack">${card("Deres lille hverdagsbok", "heart", '<p class="muted">Profilen hjelper deg å samle turer, måltider og familie. Alderen er den du oppga ved registrering, og oppdateres manuelt.</p>')}<div class="notice">${cloudMode ? (account.workspace==="family"?"Dyredata deles med medlemmene i familien.":"Dyredata lagres i din private oversikt. Du velger selv om du vil opprette en delt familie.") : "Nika er en lokal demo. Dataene deles ikke og er ingen sikkerhetskopi."} Vi gir ikke individuelle helse- eller kostråd.</div></div></div>`;
     $("profile-form").onsubmit = (e) => {
       e.preventDefault();
       const name = clean($("dog-name").value, 60),
@@ -593,7 +600,7 @@
   function walks() {
     const active = d.active;
     let current = active
-      ? `<span class="live-dot">Tur pågår · startet ${clock(active.start)}</span><div class="timer" data-timer>${duration(Date.now() - active.start)}</div><p class="subline">${count(active, "pee")} tissing · ${count(active, "poop")} bæsjing</p><div class="event-buttons">${btn(`${icon("drop")}Tisset`, "pee")}${btn("Bæsjet", "poop")}</div>${btn("Avslutt og lagre tur", "endwalk", "")}<ul class="list">${active.events
+      ? `<span class="live-dot">Tur pågår · startet ${clock(active.start)}</span><div class="timer" data-timer>${duration(Date.now() - active.start)}</div><p class="subline">${count(active, "pee")} tissing · ${count(active, "poop")} bæsjing</p><div class="event-buttons">${btn(`${icon("drop")}Tisset`, "pee")}${btn("Bæsjet", "poop")}</div>${btn("Avslutt og lagre tur", "endwalk", "")}<section id="gps-panel" class="gps-panel">${gpsPanel()}</section><ul class="list">${active.events
           .slice()
           .reverse()
           .map(
@@ -603,7 +610,7 @@
           .join(
             "",
           )}</ul>${active.legacyCounts ? '<p class="subline">Hendelser fra den gamle demoen er bevart som antall uten tidspunkt.</p>' : ""}`
-      : `${empty("Klar for litt frisk luft? Start turen når dere går ut.")}<p class="subline">Varighet og hendelser lagres. Ingen GPS eller rutesporing.</p>${btn("Start ny luftetur", "startwalk", "")}`;
+      : `${empty("Klar for litt frisk luft? Start turen når dere går ut.")}<p class="subline">Varighet og hendelser lagres. Du kan slå på GPS etter at turen er startet.</p>${btn("Start ny luftetur", "startwalk", "")}`;
     $("page-body").innerHTML =
       `<div class="two-cols"><div class="stack">${card("Lufteturen deres", "walk", current)}${card("Favorittsteder", "pin", `<p class="subline">Dine egne stedsnavn, uten GPS. Vi utleder ikke trivsel fra hendelser.</p><form id="place-form">${field("Navn på favorittsted", "place-name", "", "text", 100)}<button class="btn secondary">Legg til sted</button><p class="error" id="place-error" role="alert"></p></form><ul class="list">${d.places.map((p) => `<li class="row"><strong>${html(p.name)}</strong>${btn("Fjern", "remove-place", "secondary small", p.id)}</li>`).join("")}</ul>`, "blue-card")}</div>${card(
         "Turhistorikk",
@@ -614,7 +621,7 @@
               .reverse()
               .map(
                 (w) =>
-                  `<li><div class="row"><strong>${dateTime(w.start)}</strong><span class="badge">${duration(w.durationMs)}</span></div><p class="muted">${count(w, "pee")} tissing · ${count(w, "poop")} bæsjing${w.legacy ? " · varighet fra eldre demo" : ""}</p>${w.events.length ? `<details><summary>Vis hendelser</summary><ul>${w.events.map((ev) => `<li>${ev.type === "pee" ? "Tisset" : "Bæsjet"} · ${clock(ev.at)}</li>`).join("")}</ul></details>` : ""}</li>`,
+                  `<li><div class="row"><strong>${dateTime(w.start)}</strong><span class="badge">${duration(w.durationMs)}</span></div><p class="muted">${count(w, "pee")} tissing · ${count(w, "poop")} bæsjing${w.legacy ? " · varighet fra eldre demo" : ""}</p>${w.gps?.length ? `<details><summary>Vis GPS-rute</summary>${window.NikaGPS.route(w.gps)}${btn("Slett GPS-ruten","delete-route","secondary small",w.id)}</details>` : ""}${w.events.length ? `<details><summary>Vis hendelser</summary><ul>${w.events.map((ev) => `<li>${ev.type === "pee" ? "Tisset" : "Bæsjet"} · ${clock(ev.at)}</li>`).join("")}</ul></details>` : ""}</li>`,
               )
               .join("")}</ul>`
           : empty(
@@ -711,13 +718,13 @@
       render();
       notify("Familielisten er oppdatert.");
     };
-    if (cloudMode) document.querySelector('#page-body > .notice').textContent = 'Dette er en navneliste på din private konto. Den gir ingen andre tilgang. Invitasjoner og familiedeling er ikke aktivert ennå.';
+    if (cloudMode) document.querySelector('#page-body > .notice').innerHTML = `<p>Dette er en navneliste for oppgaver og roller. Den gir ingen andre tilgang. Kontotilgang administreres separat i Familiedeling.</p>${btn('Administrer familiedeling','sharing','')}`;
   }
   let modalReturn = null;
   function modal(content) {
     modalReturn = document.activeElement;
     $("dialog-content").innerHTML = content;
-    if (cloudMode) for (const el of document.querySelectorAll('#dialog-content .muted')) el.textContent=el.textContent.replace('Profiler og historikk lagres bare i denne nettleseren.', 'Profiler og historikk lagres privat på kontoen din.');
+    if (cloudMode) for (const el of document.querySelectorAll('#dialog-content .muted')) el.textContent=el.textContent.replace('Profiler og historikk lagres bare i denne nettleseren.', 'Profiler og historikk lagres i den valgte kontooversikten.');
     $("dialog").showModal();
   }
   function closeModal() {
@@ -731,11 +738,11 @@
   }
   function privacy() {
     if (cloudMode) {
-      modal(`<h2 id="dialog-title">Dine data på kontoen</h2><p>Dyreprofiler og historikk lagres i Nika sitt separate Supabase-prosjekt i Stockholm. Bare den innloggede brukeren har tilgang. Familielisten gir ingen andre tilgang ennå.</p><p>Du bekrefter identiteten din med e-postkode eller en tilgjengelig innloggingstjeneste. Nika får ikke tilgang til innboksen din eller e-postpassordet ditt. Innlogging gir ingen administratortilgang.</p><p>Gamle demodata ligger fortsatt lokalt og lastes ikke opp automatisk. Denne versjonen har ennå ikke GPS eller familiedeling.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${btn("Slett dyredata på kontoen","cloud-reset","danger")}${btn("Lukk","close")}</div>`);
+      modal(`<h2 id="dialog-title">Dine data på kontoen</h2><p>Dyreprofiler og historikk lagres i Nika sitt separate Supabase-prosjekt i Stockholm. Din private oversikt er bare tilgjengelig for deg. Velger du familiedeling, får medlemmene lese og redigere familiens separate oversikt. Invitasjonskoder gir tilgang og skal deles privat.</p><p>Du bekrefter identiteten din med e-postkode eller en tilgjengelig innloggingstjeneste. Nika får ikke tilgang til innboksen din eller e-postpassordet ditt. Innlogging gir ingen administratortilgang.</p><p>Gamle demodata ligger fortsatt lokalt og lastes ikke opp automatisk. GPS er valgfritt. Posisjoner registreres kun etter at du slår på GPS, og pauses når siden skjules. GPS-ruter i familiens oversikt deles med familiemedlemmene. Ingen skjult sporing eller analyse brukes.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${btn("Slett dyredata på kontoen","cloud-reset","danger")}${btn("Lukk","close")}</div>`);
       return;
     }
     modal(
-      `<h2 id="dialog-title">Dine data, på din enhet</h2><p>Nika er en offentlig testdemo. Dyreprofiler, registreringsfremdrift, turer, måltider og familie lagres bare i denne nettleseren. De deles ikke, og lagringen er ingen sikkerhetskopi.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen. Du møter dem som illustrasjoner i Nika. De er appens ansikter, ikke profilbilder av hunden du registrerer.</p><p>Demoen har ingen generell AI-chat, GPS, brukerkonto, familiedeling, aktiv QR-ID eller butikk. Ingen analyse eller posisjon samles inn.</p><p>Du kan ha flere lokale dyreprofiler. Turer, måltider og favorittsteder holdes adskilt; familien er felles. «Logg ut» avslutter bare den lokale økten og er ingen passordbeskyttelse.</p><p>Eksport kan inneholde opplysningene du har skrevet inn. Oppbevar filen privat. Sletting gjelder bare Nika-data i denne nettleseren.</p>${d.legacyContact ? "<p>Kontaktfeltet fra den gamle demoen er bevart i lokal lagring og eksport. Det publiseres ikke.</p>" : ""}<div class="form-actions">${btn("Eksporter Nika-data", "export")}${btn("Slett Nika-data", "reset", "danger")}${btn("Lukk", "close")}</div>`,
+      `<h2 id="dialog-title">Dine data, på din enhet</h2><p>Nika er en offentlig testdemo. Dyreprofiler, registreringsfremdrift, turer, måltider og familie lagres bare i denne nettleseren. De deles ikke, og lagringen er ingen sikkerhetskopi.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen. Du møter dem som illustrasjoner i Nika. De er appens ansikter, ikke profilbilder av hunden du registrerer.</p><p>Lokal modus har ingen familiedeling, aktiv QR-ID eller butikk. GPS er valgfritt og aktiveres bare når du ber om det under en tur. Ruten lagres lokalt. Ingen skjult analyse eller sporing brukes.</p><p>Du kan ha flere lokale dyreprofiler. Turer, måltider og favorittsteder holdes adskilt; familien er felles. «Logg ut» avslutter bare den lokale økten og er ingen passordbeskyttelse.</p><p>Eksport kan inneholde opplysningene du har skrevet inn. Oppbevar filen privat. Sletting gjelder bare Nika-data i denne nettleseren.</p>${d.legacyContact ? "<p>Kontaktfeltet fra den gamle demoen er bevart i lokal lagring og eksport. Det publiseres ikke.</p>" : ""}<div class="form-actions">${btn("Eksporter Nika-data", "export")}${btn("Slett Nika-data", "reset", "danger")}${btn("Lukk", "close")}</div>`,
     );
   }
   function exportData() {
@@ -796,6 +803,11 @@
     const b = e.target.closest("button");
     if (!b) return;
     const accountAction = b.dataset.action;
+    if(accountAction?.startsWith('sharing')) {if(e.detail<=1)handleSharing(accountAction,b);return;}
+    if(accountAction==='gps-start' && d.active && !blocked){d.active.gps ||= [];gps.start(d.active.gps);updateGPS();return;}
+    if(accountAction==='gps-stop'){gps.stop();return;}
+    if(accountAction==='delete-route'){confirmRemove('Slette GPS-ruten?','Posisjonene slettes fra denne turen. Tid og hendelser beholdes.','delete-route-confirm',b.dataset.id);return;}
+    if(accountAction==='delete-route-confirm' && !blocked){const walk=d.walks.find(w=>w.id===b.dataset.id);if(walk)delete walk.gps;save();closeModal();render();return;}
     if(accountAction === "photo") { if(!blocked) photoDialog(); return; }
     if (["account","google","azure","cloud-logout","cloud-discard","cloud-discard-confirm","cloud-reset","cloud-reset-confirm"].includes(accountAction)) {
       if (e.detail <= 1) handleAccountAction(accountAction, b);
@@ -839,6 +851,7 @@
       return;
     }
     if (a === "logout-confirm" && d.dog) {
+      gps.stop();
       d.sessionEnded=true;
       save(); closeModal(); render(true);
       return;
@@ -846,6 +859,7 @@
     if (a === "pets" && d.dog) { petManager(); return; }
     if (a === "choose-pet") { selectPet(id); return; }
     if (a === "add-pet" && d.dog) {
+      gps.stop();
       if(allPets().length>=50) {notify("Demoen støtter inntil 50 dyreprofiler.");return;}
       d.addingPet=true;
       save(); closeModal(); render(true);
@@ -896,6 +910,7 @@
       return;
     }
     if (a === "reset-confirm") {
+      gps.stop();
       try {
         localStorage.removeItem(KEY);
         localStorage.removeItem(LEGACY);
@@ -953,6 +968,7 @@
       return;
     }
     if (a === "endwalk" && d.active) {
+      gps.stop();
       const end = Date.now();
       d.walks.push({
         ...d.active,
@@ -1086,17 +1102,20 @@
     }
   }, 1000);
   document.addEventListener("visibilitychange", () => {
+    if(document.hidden && gps.active)gps.stop();
     if (!document.hidden && today !== dateKey()) {
       today = dateKey();
       if (!d.addingPet) render();
     }
   });
+  window.addEventListener('pagehide',()=>gps.stop());
   window.addEventListener("storage", (e) => {
     if (cloudMode) return;
     if (e.key === KEY || e.key === LEGACY || e.key === PRE_MULTI || e.key === null) {
       storageIssue =
         "Nika-data er endret i en annen fane. Oppdater denne siden før du fortsetter, slik at endringer ikke overskrives.";
       blocked = true;
+      gps.stop();
       externalChanged=true;
       showStorage();
       document
@@ -1104,14 +1123,70 @@
         .forEach((el) => (el.disabled = true));
     }
   });
+  async function sharingDialog() {
+    if(!cloudMode){accountDialog();return;}
+    modal('<h2 id="dialog-title">Familiedeling</h2><p role="status">Henter tilgang …</p>'+btn('Lukk','close'));
+    try {
+      const fam=await account.familyContext();
+      if(!$('dialog').open)return;
+      let body;
+      if(!fam) body=`<p>Opprett en delt oversikt, eller bli med med en invitasjonskode. Private profiler beholdes separat.</p><div class="form-actions">${btn('Opprett familie','sharing-create','')}${btn('Bli med i familie','sharing-join')}</div>`;
+      else body=`<p class="badge">${account.workspace==='family'?'Du bruker familiens oversikt':'Du bruker din private oversikt'}</p><h3>${html(fam.name)}</h3><p>Medlemmene kan se og redigere alle dyr, bilder, turer, GPS-ruter og måltider i denne delte oversikten. Private profiler deles ikke.</p><ul class="list">${fam.members.map(m=>`<li class="row"><span><strong>${html(m.name)}</strong><br>${m.isOwner?'Familieeier':'Familiemedlem'}</span>${fam.isOwner&&!m.isOwner?btn('Fjern tilgang','sharing-remove','secondary small',m.id):''}</li>`).join('')}</ul><div class="form-actions">${btn(account.workspace==='family'?'Åpne privat oversikt':'Åpne familiens oversikt','sharing-switch','',account.workspace==='family'?'personal':'family')}${account.workspace==='family'?btn('Hent siste familieversjon','sharing-refresh'):''}${btn('Endre mitt visningsnavn','sharing-rename')}${fam.isOwner?btn('Lag invitasjonskode','sharing-invite')+(fam.hasInvitation?btn('Trekk tilbake invitasjon','sharing-revoke'):'')+btn('Avslutt familiedeling','sharing-delete','danger'):btn('Forlat familien','sharing-leave','danger')}</div><p class="muted">Én familie per konto, inntil 12 medlemmer. Hent siste versjon før du redigerer på en annen enhet. Samtidige endringer overskrives ikke automatisk.</p>`;
+      modal(`<h2 id="dialog-title">Familiedeling</h2>${body}<p id="sharing-error" class="error" role="alert"></p>${btn('Lukk','close')}`);
+    } catch(error){modal(`<h2 id="dialog-title">Familiedeling</h2><p role="alert">${html(error.message)}</p>${btn('Lukk','close')}`);}
+  }
+  function sharingForm(kind) {
+    const create=kind==='create', join=kind==='join';
+    if(create && allPets().some(p=>p.active)){notify('Avslutt aktive turer før du oppretter familien.');return;}
+    modal(`<h2 id="dialog-title">${create?'Opprett familie':join?'Bli med i familie':'Endre visningsnavn'}</h2><form id="sharing-form">${create?field('Familienavn','sharing-name','','text',60):''}${field('Ditt visningsnavn','sharing-person','','text',60)}${join?field('Invitasjonskode','sharing-code','','text',64):''}${create?'<label class="sharing-consent"><input id="sharing-consent" type="checkbox" required> Jeg vil dele en kopi av dyrene i min private oversikt, inkludert bilder, historikk og eventuelle GPS-ruter, med dem som blir med i familien.</label><p class="muted">Den private oversikten beholdes. Senere endringer i den private og den delte oversikten er separate.</p>':join?'<p>Alle familiemedlemmer kan redigere den delte oversikten. Dine private dyr lastes ikke opp til familien.</p>':''}<p id="sharing-error" class="error" role="alert"></p><div class="form-actions"><button class="btn" type="submit">${create?'Opprett og åpne familie':join?'Bli med og åpne familie':'Lagre navn'}</button>${btn('Avbryt','close')}</div></form>`);
+    const form=$('sharing-form');let busy=false;
+    form.onsubmit=async event=>{
+      event.preventDefault();if(busy||blocked)return;busy=true;
+      const error=$('sharing-error');const body={displayName:clean($('sharing-person').value,60)};
+      if(create){body.name=clean($('sharing-name').value,60);body.payload=structuredClone(d);body.payload.addingPet=false;body.payload.draft=defaults().draft;}
+      if(join)body.code=clean($('sharing-code').value,64);
+      form.querySelectorAll('button').forEach(b=>b.disabled=true);gps.stop();
+      try{await account.familyAction(kind,body);if(create||join)await account.switchWorkspace('family');else await sharingDialog();}
+      catch(e){if(error.isConnected)error.textContent=e.message;}
+      finally{busy=false;form.querySelectorAll('button').forEach(b=>b.disabled=false);}
+    };
+  }
+  async function handleSharing(action,button) {
+    if(!cloudMode){accountDialog();return;}
+    if(action==='sharing'){await sharingDialog();return;}
+    if(blocked){notify('Eksporter ulagrede endringer før du oppdaterer siden.');return;}
+    const kind=action.replace('sharing-','');
+    if(['create','join','rename'].includes(kind)){sharingForm(kind);return;}
+    if(['delete','leave','remove'].includes(kind)){
+      const messages={delete:['Avslutte familiedelingen?','Den delte oversikten, inkludert bilder og turer, slettes for hele familien. Private oversikter beholdes. Eksporter først hvis dere vil ta vare på dataene.'],leave:['Forlate familien?','Du mister tilgangen til den delte oversikten. Dine private dyr beholdes.'],remove:['Fjerne tilgangen?','Medlemmet mister tilgang til familiens delte oversikt. Allerede nedlastede kopier kan ikke trekkes tilbake.']};
+      confirmRemove(...messages[kind],'sharing-'+kind+'-confirm',button.dataset.id);return;
+    }
+    button.disabled=true;gps.stop();
+    try {
+      if(kind==='switch')await account.switchWorkspace(button.dataset.id);
+      else if(kind==='refresh')await account.switchWorkspace('family');
+      else if(kind==='invite'){
+        const invitation=await account.familyAction('invite');
+        modal(`<h2 id="dialog-title">Inviter til familien</h2><p>Del koden privat med én person du ønsker å gi tilgang. Koden virker én gang og utløper etter 24 timer. En ny kode erstatter den forrige.</p><label class="field">Invitasjonskode<textarea id="invite-code" readonly rows="3">${html(invitation.code)}</textarea></label><p>Gyldig til ${html(dateTime(Date.parse(invitation.expiresAt)))}</p><p class="muted">Ingen e-post sendes automatisk. Personen logger inn i Nika og velger Familie → Bli med i familie.</p><p id="sharing-error" role="status"></p><div class="form-actions">${btn('Kopier kode','sharing-copy','')}${btn('Lukk','close')}</div>`);
+      } else if(kind==='copy'){
+        try{await navigator.clipboard.writeText($('invite-code').value);$('sharing-error').textContent='Koden er kopiert.';}catch{$('invite-code').select();$('sharing-error').textContent='Marker og kopier koden manuelt.';}
+      } else {
+        const request=kind.replace('-confirm','');
+        await account.familyAction(request,request==='remove'?{userId:button.dataset.id}:{});
+        if(['delete','leave'].includes(request))await account.switchWorkspace('personal');else await sharingDialog();
+      }
+    }catch(e){if($('sharing-error'))$('sharing-error').textContent=e.message;else notify(e.message);}
+    finally{button.disabled=false;}
+  }
+
   async function accountDialog() {
     if (cloudMode) {
-      modal(`<h2 id="dialog-title">Min konto</h2><p>${html(account.user?.email || 'Innlogget bruker')}</p><p id="account-role">Dine dyr og din historikk er private.</p><section id="admin-summary" hidden></section>${blocked ? '<p class="notice">Du har ulagrede endringer. Eksporter dem før du forlater siden.</p>' : ''}<div class="form-actions">${btn("Logg ut","cloud-logout","")}${btn("Eksporter Nika-data","export")}${btn("Lukk","close")}</div><p id="account-error" class="error" role="alert"></p>`);
+      modal(`<h2 id="dialog-title">Min konto</h2><p>${html(account.user?.email || 'Innlogget bruker')}</p><p id="account-role">Dine dyr og din historikk er private.</p><section id="admin-summary" hidden></section>${blocked ? '<p class="notice">Du har ulagrede endringer. Eksporter dem før du forlater siden.</p>' : ''}<div class="form-actions">${btn("Familiedeling","sharing","")}${btn("Logg ut","cloud-logout")}${btn("Eksporter Nika-data","export")}${btn("Lukk","close")}</div><p id="account-error" class="error" role="alert"></p>`);
       const roleEl=$('account-role'), summary=$('admin-summary');
       try {
         const access=await account.access();
         if(!roleEl.isConnected)return;
-        roleEl.textContent=access.role==='admin' ? 'Administrator for Nika' : 'Vanlig brukertilgang. Dine dyr og din historikk er private.';
+        roleEl.textContent=(access.role==='admin' ? 'Administrator for Nika. ' : 'Vanlig brukertilgang. ')+(account.workspace==='family'?'Du bruker familiens delte oversikt.':'Du bruker din private oversikt.');
         if(access.role==='admin') {
           summary.hidden=false;
           summary.innerHTML=`<h3>Administrer Nika</h3><dl class="details"><div><dt>Registrerte kontoer</dt><dd>${html(access.accounts)}</dd></div><div><dt>Kontoer med lagrede dyr</dt><dd>${html(access.savedAccounts)}</dd></div></dl><p class="muted">Kun din konto har administratortilgang. Oversikten viser antall, ikke andre brukeres private profiler.</p>`;
@@ -1159,6 +1234,7 @@
   }
 
   async function handleAccountAction(action, button) {
+    if(action.includes("logout") || action.includes("reset") || action.includes("discard"))gps.stop();
     if (!account?.enabled) return;
     if (action === 'account') { await accountDialog(); return; }
     if (action === 'cloud-logout' && blocked) {
@@ -1186,9 +1262,9 @@
     $('content').innerHTML = '<p role="status" class="notice">Åpner Nika …</p>';
     account.on((type,error) => {
       if (type === 'saved') { storageIssue='Lagret på kontoen.'; showStorage(); }
-      if (type === 'saveerror') { blocked=true; storageIssue=error.message; render(); }
+      if (type === 'saveerror') { gps.stop('GPS er stoppet fordi lagring feilet.'); blocked=true; storageIssue=error.message; render(); }
       if (type === 'signedout' || type === 'accountchanged') {
-        d=defaults(); cloudReady=false;
+        gps.stop(); d=defaults(); cloudReady=false;
         $('dialog').close(); $('pet-controls').replaceChildren(); $('nav').replaceChildren();
         $('content').replaceChildren();
         location.replace('/?signedout=1');

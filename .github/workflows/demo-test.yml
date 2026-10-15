@@ -23,6 +23,9 @@ jobs:
       - run: node tests/multi-pet.cjs
       - run: node tests/account-browser.cjs
       - run: node tests/pet-photo.cjs
+      - run: node tests/gps.cjs && node tests/family.cjs
+      - run: node tests/gps-browser.cjs
+      - run: node tests/family-browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
