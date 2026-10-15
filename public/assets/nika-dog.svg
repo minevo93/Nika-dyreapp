@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="680" viewBox="0 0 620 680" role="img" aria-labelledby="title"><title id="title">En vennlig, gyllen hund med grønt halsbånd</title>
+<defs><linearGradient id="fur" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4d6a6"/><stop offset=".6" stop-color="#dcae75"/><stop offset="1" stop-color="#be8a52"/></linearGradient><linearGradient id="light" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe8be"/><stop offset="1" stop-color="#e2bb86"/></linearGradient><linearGradient id="ear"><stop stop-color="#ce995e"/><stop offset="1" stop-color="#a66e3e"/></linearGradient><radialGradient id="ground"><stop stop-color="#355740" stop-opacity=".23"/><stop offset="1" stop-color="#355740" stop-opacity="0"/></radialGradient><filter id="soft"><feGaussianBlur stdDeviation="7"/></filter></defs>
+<ellipse cx="309" cy="609" rx="240" ry="43" fill="url(#ground)"/>
+<path d="M431 508c71-27 104-97 77-116-20-12-25 26-55 36-31 11-57 5-64 24" fill="none" stroke="#c6965f" stroke-width="46" stroke-linecap="round"/>
+<path d="M269 310c-60 25-78 112-82 176-2 47-37 61-19 97 11 26 69 25 93 9 35 17 136 16 155-15 23-35 7-93-2-144-10-58-26-111-73-126z" fill="url(#fur)"/>
+<path d="M286 327c-37 31-36 94-24 152 9 42 32 50 63 35 27-13 51-100 20-164z" fill="url(#light)"/>
+<path d="M228 432c-18 45-17 96-25 125-21 4-31 14-28 29 4 21 66 21 77 4 8-17 16-102 13-144" fill="url(#light)"/>
+<path d="M348 436c-5 49 7 88 4 121-21 5-29 17-24 30 7 19 64 20 73 1 8-21-1-104-12-145" fill="url(#fur)"/>
+<path d="M195 581v9m15-10v12m137-10v10m17-11v12" stroke="#b2875a" stroke-width="3" stroke-linecap="round"/>
+<path d="M211 302c36 32 117 51 173 8l-4 34c-49 39-129 22-166-6z" fill="#365f4b"/><path d="M217 314c42 34 112 41 163 8" fill="none" stroke="#78907a" stroke-width="4"/>
+<circle cx="303" cy="355" r="20" fill="#d6ad68" stroke="#f9de9c" stroke-width="4"/><path d="M298 349h10v10h-10z" fill="none" stroke="#735d37" stroke-width="2"/>
+<path d="M208 155c-31-3-75 34-74 95 0 48 32 79 54 56 16-18 37-76 35-118z" fill="url(#ear)"/>
+<path d="M369 150c40-2 75 34 77 91 1 41-21 84-46 67-22-14-37-87-41-113z" fill="url(#ear)"/>
+<path d="M189 213c-2-76 42-113 108-112 72 0 110 49 108 118-1 68-33 112-102 112-73 0-113-38-114-118" fill="url(#fur)"/>
+<path d="M235 136c15-27 42-46 66-42l-13 15c17-8 34-8 44-1l-18 12" fill="url(#light)"/>
+<path d="M215 211c2-25 25-29 37-17m78-2c14-13 37-7 40 16" fill="none" stroke="#b1804d" stroke-width="7" stroke-linecap="round"/>
+<ellipse cx="243" cy="218" rx="12" ry="16" fill="#352b25"/><ellipse cx="347" cy="218" rx="12" ry="16" fill="#352b25"/><circle cx="247" cy="213" r="4" fill="#fff9ea"/><circle cx="351" cy="213" r="4" fill="#fff9ea"/>
+<ellipse cx="293" cy="272" rx="66" ry="47" fill="url(#light)"/>
+<path d="M275 276c12 6 23 7 37 0 4 29-4 48-18 48-14 0-22-21-19-48" fill="#654331"/>
+<path d="M282 298c8-6 17-5 24 1 2 21-2 34-12 34-11 0-15-16-12-35" fill="#cc8275"/><path d="M294 306v17" stroke="#aa625e" stroke-width="2"/>
+<path d="M271 251c4-12 43-12 47 0 2 11-12 24-23 24-12 0-26-14-24-24" fill="#3a3029"/><ellipse cx="289" cy="249" rx="9" ry="3" fill="#786455"/>
+<path d="M254 274c10 12 27 12 40 1 16 12 31 11 43-2" fill="none" stroke="#7d593d" stroke-width="3" stroke-linecap="round"/>
+<g fill="#a97a4d" opacity=".5"><circle cx="252" cy="261" r="2"/><circle cx="260" cy="255" r="2"/><circle cx="332" cy="259" r="2"/><circle cx="340" cy="264" r="2"/></g>
+<path d="M177 315c-6-16-8-36-7-53m248 9c2 16 0 28-4 41" fill="none" stroke="#e2b780" stroke-width="6" stroke-linecap="round"/>
+</svg>

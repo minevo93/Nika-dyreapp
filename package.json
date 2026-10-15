@@ -1,0 +1,11 @@
+{
+  "name": "nika-dyreapp-demo",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "test": "node tests/e2e.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
