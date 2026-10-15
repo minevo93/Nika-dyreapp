@@ -1369,6 +1369,7 @@ footer p {
 }
 @media (max-width: 760px) {
   .pet-controls { padding: 0 20px 10px; }
+  .welcome-top .welcome-second-line { display: block; }
   .pet-picker { max-width: none; }
   .compact-dashboard { grid-template-columns: minmax(0,1fr); gap: 14px; }
   .routine-card { padding: 20px; }
@@ -1380,5 +1381,6 @@ footer p {
   .welcome-top { padding: 0 0 6px; }
   .welcome-top h1 { font-size: clamp(28px, 5vw, 36px); margin: 4px auto 8px; }
   .welcome-top p { font-size: 13px; }
+  .welcome-top .welcome-second-line { display: inline; }
   .welcome-top .eyebrow { font-size: 9px; margin: 6px auto 4px; }
 }

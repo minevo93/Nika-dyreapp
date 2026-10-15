@@ -11,8 +11,9 @@ let server, browser;
 const errors = [];
 fs.mkdirSync(evidence, {recursive:true});
 async function photo(p, name) {
-  await p.screenshot({path:path.join(evidence, name+'.png'),fullPage:true,animations:'disabled'});
-  console.log('NIKA_IMAGE '+name+' '+(await p.screenshot({type:'jpeg',quality:70,fullPage:true,animations:'disabled'})).toString('base64'));
+  const fullPage=!name.includes('dashboard');
+  await p.screenshot({path:path.join(evidence, name+'.png'),fullPage,animations:'disabled'});
+  console.log('NIKA_IMAGE '+name+' '+(await p.screenshot({type:'jpeg',quality:70,fullPage,animations:'disabled'})).toString('base64'));
 }
 (async()=>{
   if (!process.env.NIKA_TEST_URL) {
