@@ -1,6 +1,28 @@
 # Verifisering – Nika demo v2
 
-## Gjeldende produksjon – setninger, flere dyr og kompakt oversikt
+## Gjeldende produksjon – mobiltekst og bunnmeny, 15. oktober 2026
+
+- Live: https://nika-dyreapp.netlify.app/
+- Deploy `6ad0c1cda037728230eda36a`, production, ready, publisert kl. 14:06 Oslo. Ingen besøksinnlogging/passord.
+- Webkode: `ded09440b25c671bd4760d4eaf12ad3ed46f2e3e`, gren `feat/nika-demo-v2`, åpen PR #1.
+- [Test før publisering](https://github.com/minevo93/Nika-dyreapp/actions/runs/38731961440): success.
+- [Offentlig produksjonstest](https://github.com/minevo93/Nika-dyreapp/actions/runs/38732405926), commit `9e26c62993429578817ba75ef7d06998d6be8cb3`: success. Isolerte nettleserkontekster uten Netlify-innlogging.
+- SHA-256-sammenligning bekrefter riktig publisert HTML, CSS, JavaScript, inaktiv kontobundle og duoillustrasjon.
+- 20 eksisterende funksjonsgrupper, 11 grupper for flere dyr, 17 parsereksempler, ti skjermstørrelser og rotasjon besto. Ingen konsollfeil eller manglende appressurser.
+- Nye kontroller: riktig tekstrekkefølge, maks to linjer per tekst, begge maskottekstkort synlige, fem menyvalg nederst på mobil, aktiv markering og minst 44 px trykkflater.
+- Chromium 151.0.7922.34 / Playwright 1.62.1 på Ubuntu GitHub Actions. 320×568, 390×844, 430×932, 568×320, 667×375, 844×390, 932×430, 768×1024, 1024×768 og 1440×1000. Ikke fysisk telefon, Safari eller Firefox.
+
+| Visning | Skjermbilde fra offentlig produksjon |
+| --- | --- |
+| Førstegangsopplevelse, mobil | [Bilde](docs/screenshots/mobile-v6-live-orientation-onboarding-390x844.jpg) |
+| Bunnmeny, stående mobil | [Bilde](docs/screenshots/mobile-v6-live-orientation-dashboard-390x844.jpg) |
+| Bunnmeny, liggende mobil | [Bilde](docs/screenshots/mobile-v6-live-orientation-dashboard-844x390.jpg) |
+| Førstegangsopplevelse, desktop | [Bilde](docs/screenshots/mobile-v6-live-onboarding-desktop.jpg) |
+| Dashboard, desktop | [Bilde](docs/screenshots/mobile-v6-live-compact-dashboard-desktop.jpg) |
+
+Kontoinnlogging er fortsatt deaktivert. Privat RLS-lagring er testet med to midlertidige identiteter i den faktiske Nika-databasen, med ROLLBACK; ingen testdata gjenstår. Sikkerhetskontrollen har ingen merknader. Syv kontotestgrupper og nettlesertest av kontoarbeidsflyten besto med simulert tjeneste. Ekte Google-/Microsoft-registrering og innlogging er ikke testet, og leverandørene er ikke aktivert. GPS og familiedeling gjenstår.
+
+## Tidligere produksjon – setninger, flere dyr og kompakt oversikt
 
 - Live: https://nika-dyreapp.netlify.app/
 - Deploy `6ad0b102d458b47e45e85b74`, **ready**, publisert 15. oktober 2026 kl. 12:55 Oslo-tid. Samme eksisterende Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`, kun Nika-prosjektets egne webfiler. Ingen andre prosjekter, konto-/teaminnstillinger eller betalte tjenester endret.

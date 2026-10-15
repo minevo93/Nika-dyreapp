@@ -1,12 +1,12 @@
 # Nika – Dyreappen
 
-**Pågående kontoarbeid (ikke publisert):** Google og Microsoft/Hotmail er valgt. Privat database og kontokode er klargjort på arbeidsgrenen, med innlogging deaktivert til OAuth-appene er registrert og ekte innlogging er testet. Se [status og aktivering](docs/account-setup.md). GPS og familiedeling gjenstår. Produksjonsbeskrivelsen nedenfor gjelder fortsatt den publiserte lokale demoen.
+**Pågående kontoarbeid:** Google og Microsoft/Hotmail er valgt. Privat database og kontokode er klargjort, men innlogging er deaktivert til OAuth-appene er registrert og ekte innlogging er testet. Se [status og aktivering](docs/account-setup.md). GPS og familiedeling gjenstår. Den offentlige appen fungerer fortsatt som lokal demo.
 
 En norsk, lokal webdemo for dyrehverdagen. Vanlig HTML, CSS og JavaScript, uten rammeverk, byggesteg eller backend.
 
 **Live og offentlig testet:** https://nika-dyreapp.netlify.app/
 
-Produksjonsdeploy `6ad0b102d458b47e45e85b74` er `ready`, publisert 15. oktober 2026 kl. 12:55 Oslo-tid via Netlify Drop til det eksisterende Nika-prosjektet. Registrering forstår nå også setninger uten komma. Flere lokale dyreprofiler, lokal utlogging og en samlet, kompakt hverdagsoversikt er publisert. Appnavnet er Nika; Nika og Tyra er ansiktene og historien bak. Hundene kommer før chatten på stående mobil og ved siden av den på korte, liggende skjermer. Produksjonstesten besto 20 eksisterende og 11 nye funksjonstestgrupper, 17 setningsparser-eksempler med ekstra valideringskontroller, ti skjermstørrelser og en rotasjonssekvens. Se [produksjonstesten](https://github.com/minevo93/Nika-dyreapp/actions/runs/38723795476) og [TESTING.md](TESTING.md).
+Produksjonsdeploy `6ad0c1cda037728230eda36a` er `ready`, publisert 15. oktober 2026 kl. 14:06 Oslo-tid via Netlify Drop til det eksisterende Nika-prosjektet. Forsidetekstene følger rekkefølgen overskrift → støttesetninger → «DITT DYR. DIN FAMILIE. DERES HVERDAG.», med én eller to linjer per tekst. Mobil har fast bunnmeny med alle fem hovedvalg og plass under innholdet, stående og liggende. Begge tekstkortene ved Nika og Tyra er synlige på mobil. Lokal utlogging går til forsiden og bevarer profilene. Funksjonene med flere dyr, setningsregistrering, turer, måltider og kompakt hverdagsoversikt er bevart. [Produksjonstesten](https://github.com/minevo93/Nika-dyreapp/actions/runs/38732405926) verifiserte publiserte filer mot kodebasen og besto funksjonstestene, ti skjermstørrelser og rotasjon. Se [TESTING.md](TESTING.md).
 
 ## Kjør lokalt
 
@@ -40,7 +40,7 @@ Ingen analyse, nettverks-API-er, eksterne fonter, posisjonsinnsamling eller hemm
 
 ## Netlify
 
-Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `a622736f91c3126ceafb9fd3304a3d8264f0a3d5` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
+Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `ded09440b25c671bd4760d4eaf12ad3ed46f2e3e` på `feat/nika-demo-v2`. Produksjonstesten ligger i `9e26c62993429578817ba75ef7d06998d6be8cb3`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
 
 Netlifys Developer settings er kontrollert og viser **Current repository: Not linked**. Dette er derfor et manuelt produksjonsdeploy, ikke automatisk Git-publisering. Ingen konto- eller repository-tilgang er utvidet for å koble Git. Før en eventuell senere Git-kobling med produksjonsgren `main` må den ferdige koden merges med nødvendig godkjenning, slik at en eldre main-versjon ikke erstatter demoen.
 
