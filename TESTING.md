@@ -1,6 +1,23 @@
 # Verifisering – Nika demo v2
 
-## Gjeldende produksjon – kompakte tekstkort, profil og utlogging, 15. oktober 2026
+## Gjeldende produksjon – knapper, ikoner og fokus, 15. oktober 2026
+
+- Deploy `6ad0eba9e31e68278e8adc63`, production, ready, publisert kl. 17:05 Oslo. Webkode `64e22133e39b5d5f756c5d0801a36a4467bd1024`, testcommit `de5d0d2c6622d671c27ce231acdb233d80b6c72e`, samme gren og PR.
+- [Test før publisering](https://github.com/minevo93/Nika-dyreapp/actions/runs/38756161583): success. [Offentlig produksjonstest](https://github.com/minevo93/Nika-dyreapp/actions/runs/38757743940): success. SHA-256 bekrefter identiske publiserte webfiler.
+- Chromium 151.0.7922.34 / Playwright 1.62.1 på Ubuntu GitHub Actions uten Netlify-innlogging. Alle 20 funksjonsgrupper, 17 registreringseksempler, 11 flerprofilgrupper og ti skjermstørrelser besto. Ingen konsollfeil eller manglende ressurser. Ikke fysisk telefon, Safari eller Firefox.
+- Nye kontroller bekrefter at profilavatar åpner profilsiden, tastaturfokus fortsatt er synlig og grønt, og navigasjon ikke tegner ramme rundt hele siden. Bunnmeny med ikon og tekst, minst 44 px knapper og redusert bevegelse er kontrollert.
+- En første ekstra test forventet feilaktig en dialog ved profilknappen; den ble rettet til å kontrollere den faktiske profilsiden. Ingen appfeil ble skjult eller omgått.
+- Første Netlify-opplasting viste forbindelsesfeil. Ett nytt forsøk lyktes. Ingen innstillinger eller andre prosjekter ble endret.
+- Kontoer er fortsatt deaktivert. Google/Microsoft-registrering, faktisk familiedeling, GPS og administratorrollen er ikke ferdig levert.
+
+Skjermbilder fra offentlig produksjon:
+
+- [Forside mobil](docs/screenshots/controls-live-orientation-onboarding-390x844.jpg)
+- [Dashboard mobil](docs/screenshots/controls-live-compact-dashboard-mobile.jpg)
+- [Dashboard desktop](docs/screenshots/controls-live-compact-dashboard-desktop.jpg)
+- [Utlogging mobil](docs/screenshots/controls-live-logout-dialog-mobile.jpg)
+
+## Tidligere produksjon – kompakte tekstkort, profil og utlogging, 15. oktober 2026
 
 - Live: https://nika-dyreapp.netlify.app/
 - Deploy `6ad0d4085ad29accfc6fce24`, production, ready, publisert kl. 15:24 Oslo. Samme eksisterende Nika-prosjekt, ingen endring av andre prosjekter eller besøksrettigheter.

@@ -15,6 +15,10 @@ Arbeidsgren `feat/nika-demo-v2`. **Ikke aktivert eller publisert med ekte innlog
 
 ## Det som blokkerer aktivering
 
+Kontroll 15. oktober kl. 17 Oslo: Site URL er lagret som `https://nika-dyreapp.netlify.app/`. Google og Azure er fortsatt av. Google Cloud viste «Site Unavailable» i arbeidsnettleseren også etter én oppdatering. Microsoft Entra åpnet en reell innloggingsside; sikker eierinnlogging kreves for videre appregistrering. SMTP er ikke aktivert.
+
+Eierens ønskede administratoradresse er kontrollert mot Auth Users, men har ennå ingen Nika-konto. Ingen administratorrolle er derfor tildelt. Rollen skal knyttes serverstyrt til en bekreftet Auth-bruker etter registrering, aldri gis gjennom frontend eller redigerbare brukermetadata. Alle øvrige brukere beholder vanlig tilgang. Dette gir ikke medlemskap eller administrasjon i Supabase-organisasjonen.
+
 Supabase `/auth/v1/settings` bekreftet `google: false` og `azure: false` den 15. oktober 2026. Vi mangler Nika-spesifikke OAuth-appregistreringer og konfigurasjon hos leverandørene. Det finnes ingen tilgjengelig tilkoblet integrasjon for disse administrasjonsoppgavene. Ikke send klienthemmeligheter i chat eller legg dem i GitHub.
 
 1. Google Cloud: registrer Nika, audience External, bare `openid`, `email`, `profile`, OAuth web client. JavaScript origin: `https://nika-dyreapp.netlify.app`. Callback: `https://irqcatqpllzzcktjnffq.supabase.co/auth/v1/callback`. Bruk klient-ID og hemmelighet bare i Supabase sin Google-provider. Fjern testbrukerbegrensningen før offentlig lansering, etter Googles krav.
