@@ -31,6 +31,7 @@ async function photo(p, name) {
     p.on('response',r=>{if(r.status()>=400)errors.push(r.status()+' '+r.url());});
     await p.goto(base);
     await p.locator('.dog-scene > img').evaluate(img=>img.decode());
+    await p.locator('.dog-scene > img').evaluate(img=>Promise.all(img.getAnimations().map(animation=>animation.finished)));
     assert.equal(await p.title(),'Nika – Dyreappen');
     assert.match(await p.locator('.duo-story').innerText(),/Møt Nika og Tyra/);
     const geometry = await p.evaluate(()=>{
