@@ -1,50 +1,447 @@
-const { chromium } = require('playwright');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const { spawn } = require('node:child_process');
-const root=path.resolve(__dirname,'..'), evidence=path.join(root,'evidence');
-fs.mkdirSync(evidence,{recursive:true});
-const base=process.env.NIKA_TEST_URL||'http://127.0.0.1:4173';
-const K='nika-demo-v2';
-let browser,server;const checks=[],errors=[];
-const pass=s=>{checks.push(s);console.log('PASS',s)};
-const click=(p,a)=>p.locator(`[data-action="${a}"]`).first().click();
-const nav=(p,n)=>p.getByRole('navigation').getByRole('button',{name:n,exact:true}).click();
-async function fresh(options={}){const ctx=await browser.newContext({timezoneId:'Europe/Oslo',...options});const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`)});return {ctx,p};}
-async function combined(p,name='Luna'){await p.locator('#answer').fill(`${name}, blandingshund, 8 måneder`);await p.locator('#answer').press('Enter');await p.getByRole('button',{name:'Ja, opprett profilen',exact:true}).click();}
-async function store(p){return p.evaluate(k=>JSON.parse(localStorage.getItem(k)),K);}
-(async()=>{
- if(!process.env.NIKA_TEST_URL){server=spawn('python3',['-m','http.server','4173','--directory',path.join(root,'public')],{stdio:'ignore'});for(let i=0;i<30;i++){try{await fetch(base);break}catch{await new Promise(r=>setTimeout(r,100))}}}
- let launch={headless:true};if(process.env.NIKA_CHROMIUM_EXECUTABLE)launch={...launch,executablePath:process.env.NIKA_CHROMIUM_EXECUTABLE,args:['--no-sandbox','--disable-dev-shm-usage']};
- browser=await chromium.launch(launch);console.log('BROWSER',browser.version());
- let {ctx,p}=await fresh({viewport:{width:1440,height:1000}});await p.goto(base);
- await p.screenshot({path:path.join(evidence,'onboarding-desktop.png'),fullPage:true,animations:'disabled'});console.log('NIKA_IMAGE onboarding-desktop '+(await p.screenshot({type:'jpeg',quality:65,fullPage:true,animations:'disabled'})).toString('base64'));
- await p.locator('#answer').fill('  ');await p.locator('#answer').press('Enter');assert.match(await p.locator('#onboard-error').innerText(),/Skriv/);
- await p.locator('#answer').fill('Luna');await p.locator('#answer').press('Enter');await p.reload();assert.match(await p.locator('.messages').innerText(),/Luna/);assert.match(await p.locator('.chat-step').innerText(),/2 av 3/);
- await p.locator('#answer').fill('ukjent rase');await p.locator('#answer').press('Enter');await p.locator('#answer').fill('tre');await p.locator('#answer').press('Enter');assert.match(await p.locator('#onboard-error').innerText(),/alder/);
- await p.locator('#answer').fill('8 måneder');await p.locator('#answer').press('Enter');assert.equal((await store(p)).dog,null);
- await click(p,'correct');await p.locator('#draft-name').fill('Luna Test');await p.getByRole('button',{name:'Oppdater oppsummering'}).click();await p.reload();assert.match(await p.locator('.onboard-summary').innerText(),/Luna Test/);await click(p,'confirm');assert.equal((await store(p)).dog.name,'Luna Test');pass('Stegvis onboarding, validering, fremdrift, korrigering og bekreftelse');
- await nav(p,'Min hund');await p.locator('#dog-name').fill('Luna');await p.locator('#dog-age').fill('3 år');await p.locator('#dog-sex').selectOption('Hunn');await p.getByRole('button',{name:'Lagre profil',exact:true}).click();await p.reload();await nav(p,'Min hund');assert.equal(await p.locator('#dog-sex').inputValue(),'Hunn');pass('Profilredigering og lagring etter oppdatering');
- await nav(p,'Turer');await p.locator('[data-action="startwalk"]').dblclick();await p.locator('[data-action="pee"]').dblclick();await click(p,'poop');assert.equal((await store(p)).active.events.length,2);await p.reload();await nav(p,'Turer');assert.equal((await store(p)).active.events.length,2);await click(p,'undo-event');assert.equal((await store(p)).active.events.length,1);
- // Clock controls advance actual app time without real waits.
- await p.clock.install();await p.clock.fastForward(2300);await click(p,'endwalk');let data=await store(p);assert.equal(data.active,null);assert.ok(data.walks[0].durationMs>0&&data.walks[0].durationMs<60000);assert.match(await p.locator('#page-body').innerText(),/sek/);pass('Aktiv tur over oppdatering, dobbelklikk, hendelser med tid, angre og varighet under ett minutt');
- await p.locator('#place-name').fill('Skogstien');await p.getByRole('button',{name:'Legg til sted'}).click();assert.equal((await store(p)).places[0].name,'Skogstien');pass('Brukermerkede favorittsteder');
- await nav(p,'Måltider');await p.locator('#meal-food').fill('Frokost');await p.locator('#meal-time').fill('08:00');await p.getByRole('button',{name:'Legg til måltid',exact:true}).click();await click(p,'edit-meal');await p.locator('#meal-food').fill('Vanlig fôr');await p.getByRole('button',{name:'Lagre endringer',exact:true}).click();await click(p,'give');assert.equal((await store(p)).feedings.length,1);await click(p,'undo-feeding');assert.equal((await store(p)).feedings.length,0);await click(p,'give');
- const yesterday=await p.evaluate(()=>{let x=new Date();x.setDate(x.getDate()-1);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`});await p.evaluate(({K,yesterday})=>{let d=JSON.parse(localStorage.getItem(K));d.feedings[0].day=yesterday;d.feedings[0].at-=86400000;localStorage.setItem(K,JSON.stringify(d))},{K,yesterday});await p.reload();await nav(p,'Måltider');assert.equal(await p.locator('[data-action="give"]').count(),1);await click(p,'delete-meal');await click(p,'delete-meal-confirm');assert.equal((await store(p)).meals.length,0);assert.equal((await store(p)).feedings.length,1);pass('Måltidsplan CRUD, gitt/angre, datoavgrensning og bevart historikk');
- await nav(p,'Familie');await p.locator('#member-name').fill('Demo Person');await p.locator('#member-role').fill('Turvenn');await p.getByRole('button',{name:'Legg til familiemedlem',exact:true}).click();await click(p,'edit-family');await p.locator('#member-role').fill('Matansvarlig');await p.getByRole('button',{name:'Lagre endringer',exact:true}).click();await p.reload();await nav(p,'Familie');assert.equal((await store(p)).family[0].role,'Matansvarlig');assert.match(await p.locator('.notice').innerText(),/ingen invitasjoner/);await click(p,'delete-family');await click(p,'delete-family-confirm');assert.equal((await store(p)).family.length,0);pass('Familie CRUD med lokale roller og tydelig begrensning');
- await nav(p,'Oversikt');await p.screenshot({path:path.join(evidence,'dashboard-desktop.png'),fullPage:true,animations:'disabled'});console.log('NIKA_IMAGE dashboard-desktop '+(await p.screenshot({type:'jpeg',quality:65,fullPage:true,animations:'disabled'})).toString('base64'));
- for(const width of [390,768,1440]){await p.setViewportSize({width,height:900});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`overflow ${width}`);const small=await p.locator('button').evaluateAll(els=>els.filter(e=>e.getBoundingClientRect().width&& (e.getBoundingClientRect().height<44||e.getBoundingClientRect().width<44)).map(e=>e.textContent));assert.deepEqual(small,[]);if(width===390){await p.screenshot({path:path.join(evidence,'dashboard-mobile.png'),fullPage:true,animations:'disabled'});console.log('NIKA_IMAGE dashboard-mobile '+(await p.screenshot({type:'jpeg',quality:65,fullPage:true,animations:'disabled'})).toString('base64'));}}pass('Dashboard uten horisontal overflyt ved 390/768/1440 og 44 px knapper');
- await click(p,'privacy');await click(p,'reset');await click(p,'close');assert.ok((await store(p)).dog);await p.evaluate(()=>localStorage.setItem('unrelated-data','keep'));await click(p,'privacy');await click(p,'reset');await click(p,'reset-confirm');assert.equal(await p.evaluate(()=>localStorage.getItem('unrelated-data')),'keep');assert.equal(await p.evaluate(k=>localStorage.getItem(k),K),null);pass('Bekreftet datasletting, avbryt og bevaring av annen lagring');
- await p.reload();await p.setViewportSize({width:390,height:900});await p.screenshot({path:path.join(evidence,'onboarding-mobile.png'),fullPage:true,animations:'disabled'});console.log('NIKA_IMAGE onboarding-mobile '+(await p.screenshot({type:'jpeg',quality:65,fullPage:true,animations:'disabled'})).toString('base64'));
- for(const width of [390,768,1440]){await p.setViewportSize({width,height:900});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`onboard overflow ${width}`);}pass('Onboarding uten overflyt ved 390/768/1440');
- await p.emulateMedia({reducedMotion:'reduce'});assert.equal(await p.locator('.dog-scene>img').evaluate(e=>getComputedStyle(e).animationName),'none');await p.keyboard.press('Tab');assert.ok(await p.evaluate(()=>document.activeElement!==document.body));pass('Redusert bevegelse og tastaturfokus');
- await combined(p,'<img src=x onerror=alert(1)>');assert.equal(await p.locator('.welcome-banner img').count(),1);assert.equal((await store(p)).dog.name,'<img src=x onerror=alert(1)>');pass('Kombinert registrering og trygg tekstgjengivelse');await ctx.close();
- ({ctx,p}=await fresh());await p.addInitScript(()=>{Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Disabled','SecurityError')}})});await p.goto(base);assert.match(await p.locator('#storage-alert').innerText(),/ikke lagring/);await combined(p);assert.match(await p.locator('#storage-alert').innerText(),/Kunne ikke lagre/);assert.ok(await p.locator('.welcome-banner').isVisible());pass('Utilgjengelig localStorage: fungerende økt og synlig varsel');await ctx.close();
- ({ctx,p}=await fresh());await p.goto(base);await p.evaluate(()=>localStorage.setItem('nika-demo-v2','{bad json'));await p.reload();assert.match(await p.locator('#storage-alert').innerText(),/Originalen er urørt/);await combined(p);assert.equal(await p.evaluate(()=>localStorage.getItem('nika-demo-v2')),'{bad json');pass('Korrupt lagring bevares uten blank side eller overskriving');await ctx.close();
- ({ctx,p}=await fresh());await p.goto(base);await p.evaluate(()=>localStorage.setItem('nika-mvp-v1',JSON.stringify({dog:{name:'Eldre Luna',breed:'Golden retriever',age:'3 år',sex:'Hunn'},walks:[{start:Date.now()-600000,minutes:1,pee:2,poop:1}],active:{start:Date.now()-120000,pee:1,poop:0},meals:[{time:'17:00',food:'Fôr',done:true}],family:['Testperson'],contact:'kun lokal'})));await p.reload();data=await store(p);assert.equal(data.dog.name,'Eldre Luna');assert.equal(data.walks[0].legacyCounts.pee,2);assert.equal(data.family[0].name,'Testperson');assert.equal(data.feedings.length,0);assert.ok(await p.evaluate(()=>localStorage.getItem('nika-mvp-v1')));pass('Migrering av v1 med bevart original, profil, turer, aktiv tur, plan og familie');await ctx.close();
- ({ctx,p}=await fresh());await p.clock.install({time:new Date('2026-10-14T21:59:40Z')});await p.goto(base);await combined(p);await nav(p,'Måltider');await p.locator('#meal-food').fill('Kveldsmat');await p.getByRole('button',{name:'Legg til måltid',exact:true}).click();await p.locator('[data-action="give"]').dblclick();assert.equal((await store(p)).feedings.length,1);await p.clock.fastForward(25000);assert.equal(await p.locator('[data-action="give"]').count(),1);await click(p,'give');assert.equal((await store(p)).feedings.length,2);await nav(p,'Turer');await click(p,'startwalk');await p.clock.fastForward(120000);await click(p,'endwalk');assert.ok((await store(p)).walks[0].durationMs>=120000&&(await store(p)).walks[0].durationMs<121000);pass('Faktisk midnatt i Europe/Oslo, daglig måltidsskifte, dobbelklikk og to minutters tur');await ctx.close();
- ({ctx,p}=await fresh());await p.goto(base);await combined(p);await p.evaluate(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError')}});await nav(p,'Turer');await click(p,'startwalk');assert.match(await p.locator('#storage-alert').innerText(),/Kunne ikke lagre/);assert.ok(await p.locator('[data-timer]').isVisible());pass('Full lagring gir vedvarende varsel og fungerende tur i minnet');await ctx.close();
- assert.deepEqual(errors,[]);pass('Ingen JavaScript-feil, konsollfeil eller manglende ressurser');
- fs.writeFileSync(path.join(evidence,'results.json'),JSON.stringify({browser:`Chromium ${browser.version()}`,base,checks,errors,physicalPhone:false,date:new Date().toISOString()},null,2));
-})().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{await browser?.close();server?.kill()});
+const { chromium } = require("playwright");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const { spawn } = require("node:child_process");
+const root = path.resolve(__dirname, ".."),
+  evidence = path.join(root, "evidence");
+fs.mkdirSync(evidence, { recursive: true });
+const base = process.env.NIKA_TEST_URL || "http://127.0.0.1:4173";
+const K = "nika-demo-v2";
+let browser, server;
+const checks = [],
+  errors = [];
+const pass = (s) => {
+  checks.push(s);
+  console.log("PASS", s);
+};
+const click = (p, a) => p.locator(`[data-action="${a}"]`).first().click();
+const nav = (p, n) =>
+  p
+    .getByRole("navigation")
+    .getByRole("button", { name: n, exact: true })
+    .click();
+async function fresh(options = {}) {
+  const ctx = await browser.newContext({
+    timezoneId: "Europe/Oslo",
+    ...options,
+  });
+  const p = await ctx.newPage();
+  p.on("pageerror", (e) => errors.push(e.message));
+  p.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  p.on("response", (r) => {
+    if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`);
+  });
+  return { ctx, p };
+}
+async function combined(p, name = "Luna") {
+  await p.locator("#answer").fill(`${name}, blandingshund, 8 måneder`);
+  await p.locator("#answer").press("Enter");
+  await p
+    .getByRole("button", { name: "Ja, opprett profilen", exact: true })
+    .click();
+}
+async function store(p) {
+  return p.evaluate((k) => JSON.parse(localStorage.getItem(k)), K);
+}
+(async () => {
+  if (!process.env.NIKA_TEST_URL) {
+    server = spawn(
+      "python3",
+      ["-m", "http.server", "4173", "--directory", path.join(root, "public")],
+      { stdio: "ignore" },
+    );
+    for (let i = 0; i < 30; i++) {
+      try {
+        await fetch(base);
+        break;
+      } catch {
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    }
+  }
+  let launch = { headless: true };
+  if (process.env.NIKA_CHROMIUM_EXECUTABLE)
+    launch = {
+      ...launch,
+      executablePath: process.env.NIKA_CHROMIUM_EXECUTABLE,
+      args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    };
+  browser = await chromium.launch(launch);
+  console.log("BROWSER", browser.version());
+  let { ctx, p } = await fresh({ viewport: { width: 1440, height: 1000 } });
+  await p.goto(base);
+  await p.screenshot({
+    path: path.join(evidence, "onboarding-desktop.png"),
+    fullPage: true,
+    animations: "disabled",
+  });
+  console.log(
+    "NIKA_IMAGE onboarding-desktop " +
+      (
+        await p.screenshot({
+          type: "jpeg",
+          quality: 65,
+          fullPage: true,
+          animations: "disabled",
+        })
+      ).toString("base64"),
+  );
+  await p.locator("#answer").fill("  ");
+  await p.locator("#answer").press("Enter");
+  assert.match(await p.locator("#onboard-error").innerText(), /Skriv/);
+  await p.locator("#answer").fill("Luna");
+  await p.locator("#answer").press("Enter");
+  await p.reload();
+  assert.match(await p.locator(".messages").innerText(), /Luna/);
+  assert.match(await p.locator(".chat-step").innerText(), /2 av 3/);
+  await p.locator("#answer").fill("ukjent rase");
+  await p.locator("#answer").press("Enter");
+  await p.locator("#answer").fill("tre");
+  await p.locator("#answer").press("Enter");
+  assert.match(await p.locator("#onboard-error").innerText(), /alder/);
+  await p.locator("#answer").fill("8 måneder");
+  await p.locator("#answer").press("Enter");
+  assert.equal((await store(p)).dog, null);
+  await click(p, "correct");
+  await p.locator("#draft-name").fill("Luna Test");
+  await p.getByRole("button", { name: "Oppdater oppsummering" }).click();
+  await p.reload();
+  assert.match(await p.locator(".onboard-summary").innerText(), /Luna Test/);
+  await click(p, "confirm");
+  assert.equal((await store(p)).dog.name, "Luna Test");
+  pass("Stegvis onboarding, validering, fremdrift, korrigering og bekreftelse");
+  await nav(p, "Min hund");
+  await p.locator("#dog-name").fill("Luna");
+  await p.locator("#dog-age").fill("3 år");
+  await p.locator("#dog-sex").selectOption("Hunn");
+  await p.getByRole("button", { name: "Lagre profil", exact: true }).click();
+  await p.reload();
+  await nav(p, "Min hund");
+  assert.equal(await p.locator("#dog-sex").inputValue(), "Hunn");
+  pass("Profilredigering og lagring etter oppdatering");
+  await nav(p, "Turer");
+  await p.locator('[data-action="startwalk"]').dblclick();
+  await p.locator('[data-action="pee"]').dblclick();
+  await click(p, "poop");
+  assert.equal((await store(p)).active.events.length, 2);
+  await p.reload();
+  await nav(p, "Turer");
+  assert.equal((await store(p)).active.events.length, 2);
+  await click(p, "undo-event");
+  assert.equal((await store(p)).active.events.length, 1);
+  // Clock controls advance actual app time without real waits.
+  await p.clock.install();
+  await p.clock.fastForward(2300);
+  await click(p, "endwalk");
+  let data = await store(p);
+  assert.equal(data.active, null);
+  assert.ok(data.walks[0].durationMs > 0 && data.walks[0].durationMs < 60000);
+  assert.match(await p.locator("#page-body").innerText(), /sek/);
+  pass(
+    "Aktiv tur over oppdatering, dobbelklikk, hendelser med tid, angre og varighet under ett minutt",
+  );
+  await p.locator("#place-name").fill("Skogstien");
+  await p.getByRole("button", { name: "Legg til sted" }).click();
+  assert.equal((await store(p)).places[0].name, "Skogstien");
+  pass("Brukermerkede favorittsteder");
+  await nav(p, "Måltider");
+  await p.locator("#meal-food").fill("Frokost");
+  await p.locator("#meal-time").fill("08:00");
+  await p.getByRole("button", { name: "Legg til måltid", exact: true }).click();
+  await click(p, "edit-meal");
+  await p.locator("#meal-food").fill("Vanlig fôr");
+  await p.getByRole("button", { name: "Lagre endringer", exact: true }).click();
+  await click(p, "give");
+  assert.equal((await store(p)).feedings.length, 1);
+  await click(p, "undo-feeding");
+  assert.equal((await store(p)).feedings.length, 0);
+  await click(p, "give");
+  const yesterday = await p.evaluate(() => {
+    let x = new Date();
+    x.setDate(x.getDate() - 1);
+    return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+  });
+  await p.evaluate(
+    ({ K, yesterday }) => {
+      let d = JSON.parse(localStorage.getItem(K));
+      d.feedings[0].day = yesterday;
+      d.feedings[0].at -= 86400000;
+      localStorage.setItem(K, JSON.stringify(d));
+    },
+    { K, yesterday },
+  );
+  await p.reload();
+  await nav(p, "Måltider");
+  assert.equal(await p.locator('[data-action="give"]').count(), 1);
+  await click(p, "delete-meal");
+  await click(p, "delete-meal-confirm");
+  assert.equal((await store(p)).meals.length, 0);
+  assert.equal((await store(p)).feedings.length, 1);
+  pass("Måltidsplan CRUD, gitt/angre, datoavgrensning og bevart historikk");
+  await nav(p, "Familie");
+  await p.locator("#member-name").fill("Demo Person");
+  await p.locator("#member-role").fill("Turvenn");
+  await p
+    .getByRole("button", { name: "Legg til familiemedlem", exact: true })
+    .click();
+  await click(p, "edit-family");
+  await p.locator("#member-role").fill("Matansvarlig");
+  await p.getByRole("button", { name: "Lagre endringer", exact: true }).click();
+  await p.reload();
+  await nav(p, "Familie");
+  assert.equal((await store(p)).family[0].role, "Matansvarlig");
+  assert.match(await p.locator(".notice").innerText(), /ingen invitasjoner/);
+  await click(p, "delete-family");
+  await click(p, "delete-family-confirm");
+  assert.equal((await store(p)).family.length, 0);
+  pass("Familie CRUD med lokale roller og tydelig begrensning");
+  await nav(p, "Oversikt");
+  await p.screenshot({
+    path: path.join(evidence, "dashboard-desktop.png"),
+    fullPage: true,
+    animations: "disabled",
+  });
+  console.log(
+    "NIKA_IMAGE dashboard-desktop " +
+      (
+        await p.screenshot({
+          type: "jpeg",
+          quality: 65,
+          fullPage: true,
+          animations: "disabled",
+        })
+      ).toString("base64"),
+  );
+  for (const width of [390, 768, 1440]) {
+    await p.setViewportSize({ width, height: 900 });
+    assert.ok(
+      await p.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      `overflow ${width}`,
+    );
+    const small = await p
+      .locator("button")
+      .evaluateAll((els) =>
+        els
+          .filter(
+            (e) =>
+              e.getBoundingClientRect().width &&
+              (e.getBoundingClientRect().height < 44 ||
+                e.getBoundingClientRect().width < 44),
+          )
+          .map((e) => e.textContent),
+      );
+    assert.deepEqual(small, []);
+    if (width === 390) {
+      await p.screenshot({
+        path: path.join(evidence, "dashboard-mobile.png"),
+        fullPage: true,
+        animations: "disabled",
+      });
+      console.log(
+        "NIKA_IMAGE dashboard-mobile " +
+          (
+            await p.screenshot({
+              type: "jpeg",
+              quality: 65,
+              fullPage: true,
+              animations: "disabled",
+            })
+          ).toString("base64"),
+      );
+    }
+  }
+  pass("Dashboard uten horisontal overflyt ved 390/768/1440 og 44 px knapper");
+  await click(p, "privacy");
+  await click(p, "reset");
+  await click(p, "close");
+  assert.ok((await store(p)).dog);
+  await p.evaluate(() => localStorage.setItem("unrelated-data", "keep"));
+  await click(p, "privacy");
+  await click(p, "reset");
+  await click(p, "reset-confirm");
+  assert.equal(
+    await p.evaluate(() => localStorage.getItem("unrelated-data")),
+    "keep",
+  );
+  assert.equal(await p.evaluate((k) => localStorage.getItem(k), K), null);
+  pass("Bekreftet datasletting, avbryt og bevaring av annen lagring");
+  await p.reload();
+  await p.setViewportSize({ width: 390, height: 900 });
+  await p.screenshot({
+    path: path.join(evidence, "onboarding-mobile.png"),
+    fullPage: true,
+    animations: "disabled",
+  });
+  console.log(
+    "NIKA_IMAGE onboarding-mobile " +
+      (
+        await p.screenshot({
+          type: "jpeg",
+          quality: 65,
+          fullPage: true,
+          animations: "disabled",
+        })
+      ).toString("base64"),
+  );
+  for (const width of [390, 768, 1440]) {
+    await p.setViewportSize({ width, height: 900 });
+    assert.ok(
+      await p.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      `onboard overflow ${width}`,
+    );
+  }
+  pass("Onboarding uten overflyt ved 390/768/1440");
+  await p.emulateMedia({ reducedMotion: "reduce" });
+  assert.equal(
+    await p
+      .locator(".dog-scene>img")
+      .evaluate((e) => getComputedStyle(e).animationName),
+    "none",
+  );
+  await p.keyboard.press("Tab");
+  assert.ok(await p.evaluate(() => document.activeElement !== document.body));
+  pass("Redusert bevegelse og tastaturfokus");
+  await combined(p, "<img src=x onerror=alert(1)>");
+  assert.equal(await p.locator(".welcome-banner img").count(), 1);
+  assert.equal((await store(p)).dog.name, "<img src=x onerror=alert(1)>");
+  pass("Kombinert registrering og trygg tekstgjengivelse");
+  await ctx.close();
+  ({ ctx, p } = await fresh());
+  await p.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", {
+      get() {
+        throw new DOMException("Disabled", "SecurityError");
+      },
+    });
+  });
+  await p.goto(base);
+  assert.match(await p.locator("#storage-alert").innerText(), /ikke lagring/);
+  await combined(p);
+  assert.match(
+    await p.locator("#storage-alert").innerText(),
+    /Kunne ikke lagre/,
+  );
+  assert.ok(await p.locator(".welcome-banner").isVisible());
+  pass("Utilgjengelig localStorage: fungerende økt og synlig varsel");
+  await ctx.close();
+  ({ ctx, p } = await fresh());
+  await p.goto(base);
+  await p.evaluate(() => localStorage.setItem("nika-demo-v2", "{bad json"));
+  await p.reload();
+  assert.match(
+    await p.locator("#storage-alert").innerText(),
+    /Originalen er urørt/,
+  );
+  await combined(p);
+  assert.equal(
+    await p.evaluate(() => localStorage.getItem("nika-demo-v2")),
+    "{bad json",
+  );
+  pass("Korrupt lagring bevares uten blank side eller overskriving");
+  await ctx.close();
+  ({ ctx, p } = await fresh());
+  await p.goto(base);
+  await p.evaluate(() =>
+    localStorage.setItem(
+      "nika-mvp-v1",
+      JSON.stringify({
+        dog: {
+          name: "Eldre Luna",
+          breed: "Golden retriever",
+          age: "3 år",
+          sex: "Hunn",
+        },
+        walks: [{ start: Date.now() - 600000, minutes: 1, pee: 2, poop: 1 }],
+        active: { start: Date.now() - 120000, pee: 1, poop: 0 },
+        meals: [{ time: "17:00", food: "Fôr", done: true }],
+        family: ["Testperson"],
+        contact: "kun lokal",
+      }),
+    ),
+  );
+  await p.reload();
+  data = await store(p);
+  assert.equal(data.dog.name, "Eldre Luna");
+  assert.equal(data.walks[0].legacyCounts.pee, 2);
+  assert.equal(data.family[0].name, "Testperson");
+  assert.equal(data.feedings.length, 0);
+  assert.ok(await p.evaluate(() => localStorage.getItem("nika-mvp-v1")));
+  pass(
+    "Migrering av v1 med bevart original, profil, turer, aktiv tur, plan og familie",
+  );
+  await ctx.close();
+  ({ ctx, p } = await fresh());
+  await p.clock.install({ time: new Date("2026-10-14T21:59:40Z") });
+  await p.goto(base);
+  await combined(p);
+  await nav(p, "Måltider");
+  await p.locator("#meal-food").fill("Kveldsmat");
+  await p.getByRole("button", { name: "Legg til måltid", exact: true }).click();
+  await p.locator('[data-action="give"]').dblclick();
+  assert.equal((await store(p)).feedings.length, 1);
+  await p.clock.fastForward(25000);
+  assert.equal(await p.locator('[data-action="give"]').count(), 1);
+  await click(p, "give");
+  assert.equal((await store(p)).feedings.length, 2);
+  await nav(p, "Turer");
+  await click(p, "startwalk");
+  await p.clock.fastForward(120000);
+  await click(p, "endwalk");
+  assert.ok(
+    (await store(p)).walks[0].durationMs >= 120000 &&
+      (await store(p)).walks[0].durationMs < 121000,
+  );
+  pass(
+    "Faktisk midnatt i Europe/Oslo, daglig måltidsskifte, dobbelklikk og to minutters tur",
+  );
+  await ctx.close();
+  ({ ctx, p } = await fresh());
+  await p.goto(base);
+  await combined(p);
+  await p.evaluate(() => {
+    Storage.prototype.setItem = function () {
+      throw new DOMException("Full", "QuotaExceededError");
+    };
+  });
+  await nav(p, "Turer");
+  await click(p, "startwalk");
+  assert.match(
+    await p.locator("#storage-alert").innerText(),
+    /Kunne ikke lagre/,
+  );
+  assert.ok(await p.locator("[data-timer]").isVisible());
+  pass("Full lagring gir vedvarende varsel og fungerende tur i minnet");
+  await ctx.close();
+  assert.deepEqual(errors, []);
+  pass("Ingen JavaScript-feil, konsollfeil eller manglende ressurser");
+  fs.writeFileSync(
+    path.join(evidence, "results.json"),
+    JSON.stringify(
+      {
+        browser: `Chromium ${browser.version()}`,
+        base,
+        checks,
+        errors,
+        physicalPhone: false,
+        date: new Date().toISOString(),
+      },
+      null,
+      2,
+    ),
+  );
+})()
+  .catch((e) => {
+    console.error(e);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await browser?.close();
+    server?.kill();
+  });

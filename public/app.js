@@ -1,147 +1,922 @@
-'use strict';
+"use strict";
 (() => {
-const KEY='nika-demo-v2', LEGACY='nika-mvp-v1';
-const $=id=>document.getElementById(id), html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const uid=()=>crypto.randomUUID(), clean=(s,n=100)=>typeof s==='string'?s.trim().slice(0,n):'', validText=(s,n=100)=>typeof s==='string'&&s.trim().length>0&&s.length<=n;
-const finite=n=>Number.isFinite(n)&&n>=0, stamp=n=>finite(n)&&n<=Date.now()+60000;
-const timeRE=/^([01]\d|2[0-3]):[0-5]\d$/;
-const dateKey=(date=new Date())=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-const dateTime=n=>new Date(n).toLocaleString('nb-NO',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-const clock=n=>new Date(n).toLocaleTimeString('nb-NO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-const duration=ms=>{let s=Math.max(0,Math.floor(ms/1000));return s<60?`${s} sek`:`${Math.floor(s/60)} min ${s%60} sek`;};
-function age(v){const m=clean(v).toLowerCase().match(/^(\d+(?:[.,]\d+)?)\s*(år|år gammel|mnd\.?|måned(?:er)?)(?:\s+gammel)?$/);if(!m)return null;const n=Number(m[1].replace(',','.')),months=m[2].startsWith('år')?n*12:n;return months>0&&months<=360?`${n} ${m[2].startsWith('år')?'år':n===1?'måned':'måneder'}`:null;}
-const defaults=()=>({version:2,dog:null,draft:{name:'',breed:'',age:''},walks:[],active:null,meals:[],feedings:[],family:[],places:[],legacyContact:'',revision:0});
-function validDog(d){return d&&validText(d.name,60)&&validText(d.breed,100)&&validText(d.age,50)&&validText(d.sex,30);}
-function validate(d){
- if(!d||d.version!==2||!d.draft||!['name','breed','age'].every(k=>typeof d.draft[k]==='string'&&d.draft[k].length<=100)||(d.dog!==null&&!validDog(d.dog)))throw Error('Ugyldig profil');
- for(const k of ['walks','meals','feedings','family','places'])if(!Array.isArray(d[k]))throw Error('Ugyldig liste');
- const evt=e=>e&&typeof e.id==='string'&&['pee','poop'].includes(e.type)&&stamp(e.at);
- const walk=w=>w&&typeof w.id==='string'&&stamp(w.start)&&Array.isArray(w.events)&&w.events.every(evt)&&(!w.legacyCounts||['pee','poop'].every(k=>Number.isInteger(w.legacyCounts[k])&&w.legacyCounts[k]>=0));
- if(d.active!==null&&!walk(d.active))throw Error('Ugyldig aktiv tur');
- if(!d.walks.every(w=>walk(w)&&stamp(w.end)&&w.end>=w.start&&finite(w.durationMs)))throw Error('Ugyldig turhistorikk');
- if(!d.meals.every(m=>m&&typeof m.id==='string'&&timeRE.test(m.time)&&validText(m.food,100)))throw Error('Ugyldig måltidsplan');
- if(!d.feedings.every(f=>f&&typeof f.id==='string'&&typeof f.mealId==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(f.day)&&stamp(f.at)&&validText(f.food,100)))throw Error('Ugyldig måltidshistorikk');
- if(!d.family.every(m=>m&&typeof m.id==='string'&&validText(m.name,60)&&validText(m.role,60)))throw Error('Ugyldig familie');
- if(!d.places.every(p=>p&&typeof p.id==='string'&&validText(p.name,100)))throw Error('Ugyldig favorittsted');
- return {...defaults(),...d};
-}
-function migrate(v){
- if(!v||typeof v!=='object'||Array.isArray(v))throw Error('Ugyldige eldre data');
- const d=defaults();
- if(v.dog){if(!validText(v.dog.name,60)||!validText(v.dog.breed,100)||!validText(v.dog.age,50))throw Error('Eldre profil må gjenopprettes');d.dog={name:v.dog.name,breed:v.dog.breed,age:v.dog.age,sex:clean(v.dog.sex,30)||'Ikke oppgitt'};}
- d.draft={name:clean(v.name,60),breed:clean(v.breed),age:''};
- if(v.walks!==undefined&&!Array.isArray(v.walks))throw Error('Ugyldig eldre turhistorikk');
- for(const w of v.walks||[]){if(!stamp(w.start)||!finite(w.minutes)||!['pee','poop'].every(k=>Number.isInteger(w[k])&&w[k]>=0))throw Error('Ugyldig eldre tur');const ms=w.minutes*60000;d.walks.push({id:uid(),start:w.start,end:Math.min(Date.now(),w.start+ms),durationMs:ms,events:[],legacyCounts:{pee:w.pee,poop:w.poop},legacy:true});}
- if(v.active){if(!stamp(v.active.start)||!['pee','poop'].every(k=>Number.isInteger(v.active[k])&&v.active[k]>=0))throw Error('Ugyldig eldre aktiv tur');d.active={id:uid(),start:v.active.start,events:[],legacyCounts:{pee:v.active.pee,poop:v.active.poop}};}
- if(v.meals!==undefined&&!Array.isArray(v.meals))throw Error('Ugyldig eldre måltidsplan');
- for(const m of v.meals||[]){if(!timeRE.test(m.time)||!validText(m.food,100))throw Error('Ugyldig eldre måltid');d.meals.push({id:uid(),time:m.time,food:m.food});}
- if(v.family!==undefined&&!Array.isArray(v.family))throw Error('Ugyldig eldre familie');
- for(const m of v.family||[]){if(!validText(m,60))throw Error('Ugyldig eldre familiemedlem');d.family.push({id:uid(),name:m,role:'Familiemedlem'});}
- d.legacyContact=clean(v.contact,200);return d;
-}
-let d=defaults(),storageIssue='',blocked=false,storageAvailable=true,page='home',mealEdit=null,familyEdit=null,toastTimer,lastClick={};
-try{const raw=localStorage.getItem(KEY),old=localStorage.getItem(LEGACY);if(raw)d=validate(JSON.parse(raw));else if(old){d=migrate(JSON.parse(old));localStorage.setItem(KEY,JSON.stringify(d));storageIssue='Dataene dine er flyttet til den nye demoen. Originalen er bevart. Gamle «gitt»-markeringer manglet dato og er ikke overført; måltidsplanen er bevart.';}}
-catch(e){if(e.name==='SecurityError'||e.name==='QuotaExceededError'){storageAvailable=false;storageIssue='Nettleseren tillater ikke lagring. Du kan bruke demoen i denne økten, men nye endringer forsvinner ved oppdatering.';}else{blocked=true;storageIssue='Lagrede Nika-data kunne ikke leses. Originalen er urørt. Endringer lagres ikke før du har eksportert eller slettet Nika-data i «Om demoen og dine data».';}}
-function showStorage(){const el=$('storage-alert');el.hidden=!storageIssue;el.textContent=storageIssue;}
-function save(){
- d.revision++;if(blocked){showStorage();return false;}
- try{localStorage.setItem(KEY,JSON.stringify(d));if(!storageAvailable){storageAvailable=true;storageIssue='Lagring fungerer igjen. Endringene er lagret.';}showStorage();return true;}
- catch(e){storageAvailable=false;storageIssue='Kunne ikke lagre. Endringene finnes bare i denne økten og forsvinner ved oppdatering. Frigjør plass eller tillat lokal lagring. Du kan eksportere Nika-data under «Om demoen og dine data».';showStorage();return false;}
-}
-function notify(s){$('toast').textContent=s;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').textContent='',4000);}
-const paths={paw:'M6 16c1-6 7-7 10-2 2 2 5 4 3 6-2 2-5-1-7-1s-5 2-7 0c-1-1 0-2 1-3M4 9v1m5-5v2m6-2v2m5 3v1',walk:'M4 18c5-2 2-8 7-8s1 8 7 8h3M5 5h.01M18 4l1 3 3 1-3 1-1 3-1-3-3-1 3-1z',bowl:'M3 12h18c0 7-3 9-9 9s-9-2-9-9zM8 4v3m4-4v4m4-3v3',family:'M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm8-1a3 3 0 1 0 0-6M2 21v-2a6 6 0 0 1 12 0v2m3-6a5 5 0 0 1 5 5v1',heart:'M12 21S2 14 2 8a5 5 0 0 1 10-1 5 5 0 0 1 10 1c0 6-10 13-10 13z',leaf:'M20 3C7 2 2 8 5 15s15 6 15-12zM4 21L16 8',shield:'M12 2l9 4v6c0 5-9 10-9 10S3 17 3 12V6zM8 12l3 3 5-6',clock:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 4v5l4 2',pin:'M12 22s8-9 8-14a8 8 0 1 0-16 0c0 5 8 14 8 14zm0-17a3 3 0 1 0 0 6 3 3 0 0 0 0-6',drop:'M12 2S4 11 4 16a8 8 0 0 0 16 0c0-5-8-14-8-14z',check:'M5 12l4 4L19 6',arrow:'M4 12h16m-6-6 6 6-6 6'};
-const icon=n=>`<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="${paths[n]||paths.paw}"/></svg></span>`;
-const btn=(label,action,cls='secondary',id='')=>`<button class="btn ${cls}" data-action="${action}"${id?` data-id="${html(id)}"`:''}>${label}</button>`;
-const card=(title,ico,body,cls='',extra='')=>`<section class="card ${cls}"><div class="card-top"><h3>${icon(ico)}${title}</h3>${extra}</div>${body}</section>`;
-const empty=s=>`<p class="empty">${s}</p>`;
-const field=(label,name,value='',type='text',max=100)=>`<label class="field">${label}<input name="${name}" id="${name}" type="${type}" value="${html(value)}" required maxlength="${max}" autocomplete="off"></label>`;
-const errorSlot='<p class="error" id="form-error" role="alert"></p>';
-const count=(w,t)=>w.events.filter(e=>e.type===t).length+(w.legacyCounts?.[t]||0);
-function mealToday(m){return d.feedings.find(f=>f.mealId===m.id&&f.day===dateKey());}
-function nextMeal(){let list=d.meals.filter(m=>!mealToday(m)).sort((a,b)=>a.time.localeCompare(b.time));return list.find(m=>m.time>=new Date().toTimeString().slice(0,5))||list[0]||null;}
-function nav(){const tabs=d.dog?[['home','Oversikt'],['walks','Turer'],['meals','Måltider'],['family','Familie'],['profile','Min hund']]:[];$('nav').innerHTML=tabs.map(([p,n])=>`<button data-go="${p}"${p===page?' aria-current="page"':''}>${n}</button>`).join('');}
-function render(focus=false){nav();showStorage();if(!d.dog)onboarding();else dashboardPage();if(focus)$('content').focus({preventScroll:true});}
-function onboarding(){
- const step=!d.draft.name?0:!d.draft.breed?1:!d.draft.age?2:3;
- const questions=['Hei, så hyggelig å se deg! Jeg hjelper deg å samle hundens hverdag. Hva heter hunden din?','Et fint navn! Hvilken rase er hunden? Blandingshund og ukjent rase går også helt fint.','Hvor gammel er hunden? Skriv alder i år eller måneder, for eksempel «3 år» eller «8 måneder».'];
- let msgs=`<div class="bubble">${questions[0]}</div>`;
- if(d.draft.name)msgs+=`<div class="bubble mine">${html(d.draft.name)}</div><div class="bubble">${questions[1]}</div>`;
- if(d.draft.breed)msgs+=`<div class="bubble mine">${html(d.draft.breed)}</div><div class="bubble">${questions[2]}</div>`;
- if(d.draft.age)msgs+=`<div class="bubble mine">${html(d.draft.age)}</div><div class="bubble">Da har jeg det jeg trenger. Ser dette riktig ut?</div>`;
- $('content').innerHTML=`<section class="welcome-top"><span class="eyebrow">DIN HUND. DIN FAMILIE. DERES HVERDAG.</span><h1>Et bedre liv <em>sammen</em></h1><p>Litt mer oversikt. Litt mindre å huske på.<br>Og mer tid til det som betyr noe.</p></section><div class="onboard-scene"><aside class="dog-scene" aria-label="Velkommen til Nika"><img src="assets/nika-dog.svg" alt="Vennlig illustrert hund med grønt halsbånd" width="620" height="680"><div class="floating-note note-one">${icon('heart')}<span><b>En del av familien</b>Hver eneste dag.</span></div><div class="floating-note note-two">${icon('leaf')}<span><b>Små turer. Store øyeblikk.</b>En enklere hverdag sammen.</span></div></aside><section class="chat" aria-label="Registrer hunden din"><div class="chat-head"><div class="chat-id"><img src="assets/paw.svg" alt="" width="38" height="38"><div><strong>Hei, jeg er Nika</strong><span>La oss bli litt kjent</span></div></div><span class="chat-step">${step===3?'Klar til å bekrefte':`Steg ${step+1} av 3`}</span></div><div class="messages" id="messages" role="log" aria-label="Registreringssamtale">${msgs}</div>${step<3?`<form id="onboard-form" class="chat-form"><input id="answer" name="answer" aria-label="Svar til Nika" placeholder="${['Hundens navn …','Rase eller blandingshund …','For eksempel 3 år …'][step]}" maxlength="200" required autocomplete="off"><button class="send" aria-label="Send svar">↑</button></form><p class="error chat-help" id="onboard-error" role="alert"></p>${step===0?'<button class="quick-example" data-action="example">Du kan også skrive: «Luna, golden retriever, 3 år»</button>':''}`:`<div class="onboard-summary"><h3>En liten oppsummering</h3><dl class="details"><div><dt>Navn</dt><dd>${html(d.draft.name)}</dd></div><div><dt>Rase</dt><dd>${html(d.draft.breed)}</dd></div><div><dt>Alder</dt><dd>${html(d.draft.age)}</dd></div></dl><div class="form-actions">${btn('Ja, opprett profilen','confirm','')}${btn('Korriger','correct')}</div></div>`}<p class="chat-help">En veiviser for registrering, ikke AI-rådgivning.<br>Opplysningene lagres bare i denne nettleseren.</p></section></div><div class="trust-row"><span>${icon('shield')}Privat og lokalt</span><span>${icon('paw')}Laget for hundehverdagen</span><span>${icon('heart')}Plass til hele familien</span></div>`;
- const msgsEl=$('messages');msgsEl.scrollTop=msgsEl.scrollHeight;
- const form=$('onboard-form');if(form)form.onsubmit=e=>{e.preventDefault();const v=$('answer').value.trim();let err='';if(!v)err='Skriv et svar først.';else if(step===0){const combined=v.split(',').map(s=>s.trim());if(combined.length===3){const a=age(combined[2]);if(!validText(combined[0],60)||!validText(combined[1],100)||!a)err='Bruk navn, rase og alder med enhet, for eksempel «Luna, ukjent rase, 8 måneder».';else d.draft={name:combined[0],breed:combined[1],age:a};}else if(!validText(v,60))err='Navnet kan ha inntil 60 tegn.';else d.draft.name=v;}else if(step===1){if(!validText(v,100))err='Skriv en rase, blandingshund eller ukjent rase (inntil 100 tegn).';else d.draft.breed=v;}else{const a=age(v);if(!a)err='Skriv en alder over 0 og inntil 30 år, med år eller måneder.';else d.draft.age=a;}if(err){$('onboard-error').textContent=err;return;}save();onboarding();$('answer')?.focus();};
-}
-function dashboardPage(){
- if(page==='home'){home();return;}
- const titles={profile:['Min hund','En liten profil. En stor personlighet.'],walks:['Ut på tur','Frisk luft og små øyeblikk, samlet på ett sted.'],meals:['Tid for mat','En enkel dagsplan, med oversikt over det som er gitt.'],family:['Hele familien','Gjør det enklere å holde oversikt over hvem som er med.']};
- const [title,desc]=titles[page]||titles.home||['Oversikt',''];
- $('content').innerHTML=`<div class="page-head"><div><span class="eyebrow">HVERDAGEN MED ${html(d.dog.name.toUpperCase())}</span><h1>${title}</h1><p>${desc}</p></div>${btn('Til oversikten','home')}</div><div id="page-body"></div>`;
- if(page==='profile')profile();if(page==='walks')walks();if(page==='meals')meals();if(page==='family')family();
-}
-function home(){
- const dog=d.dog,last=d.walks.at(-1),m=nextMeal();
- $('content').innerHTML=`<div class="welcome-banner"><div><span class="date">${new Date().toLocaleDateString('nb-NO',{weekday:'long',day:'numeric',month:'long'})}</span><h1>Hei, ${html(dog.name)} <span aria-hidden="true">♡</span></h1><p>En god hverdag begynner med de små tingene.<br>Her har du oversikten deres.</p>${btn(`${icon('walk')}${d.active?'Fortsett turen':'Start luftetur'}`,d.active?'walks':'startwalk','')}</div><img class="banner-dog" src="assets/nika-dog.svg" alt="" width="620" height="680"></div><div class="dashboard-grid">
- <section class="card profile-card"><div class="card-top"><h3>${icon('paw')}Min beste venn</h3><span class="badge">Din hund</span></div><img class="profile-art" src="assets/nika-dog.svg" alt="Illustrasjon av en hund" width="155" height="155"><h2>${html(dog.name)}</h2><p class="muted">Et helt spesielt familiemedlem.</p><dl class="details"><div><dt>Rase</dt><dd>${html(dog.breed)}</dd></div><div><dt>Alder ved registrering</dt><dd>${html(dog.age)}</dd></div><div><dt>Kjønn</dt><dd>${html(dog.sex)}</dd></div></dl>${btn('Se og rediger profil','profile')}</section>
- ${card(d.active?'På tur nå':'Siste luftetur','walk',d.active?`<div class="metric" data-timer>${duration(Date.now()-d.active.start)}</div><p class="subline">${count(d.active,'pee')} tissing · ${count(d.active,'poop')} bæsjing</p>${btn('Åpne aktiv tur','walks')}`:last?`<div class="metric">${duration(last.durationMs)}</div><p class="subline">${dateTime(last.start)}<br>${count(last,'pee')} tissing · ${count(last,'poop')} bæsjing</p>${btn('Se turhistorikk','walks')}`:empty('Den første turen venter.<br>Ta med Nika neste gang dere går ut.')+btn('Start den første turen','startwalk'))}
- ${card('Neste måltid','bowl',m?`<div class="metric">${html(m.time)}</div><p class="subline">${html(m.food)} · ikke gitt i dag</p>${btn('Åpne måltider','meals')}`:empty(d.meals.length?'Alle planlagte måltider er gitt i dag. En ny plan venter i morgen.':'Ingen måltider planlagt ennå.<br>Legg inn tidene som passer dere.')+btn('Planlegg et måltid','meals'),'beige-card')}
- ${card('Familien vår','family',d.family.length?`<div class="metric">${d.family.length} <small>${d.family.length===1?'familiemedlem':'familiemedlemmer'}</small></div><p class="subline">Kun en lokal oversikt på denne enheten.</p>${btn('Se familien','family')}`:empty('Hvem deler hundehverdagen?<br>Legg til familien i den lokale oversikten.')+btn('Legg til familie','family'),'blue-card')}
- ${card('Favorittstedene deres','pin',d.places.length?`<p class="subline">${d.places.map(p=>html(p.name)).join(' · ')}</p>${btn('Se favorittsteder','walks')}`:empty('Et skogholt eller en fast liten runde?<br>Dere velger selv favorittene.')+btn('Legg til et sted','walks'))}
- </div><div class="shortcuts">${btn('Alle turer','walks')}${btn('Måltidsplan','meals')}${btn('Om denne demoen','privacy')}</div>`;
-}
-function profile(){const x=d.dog;$('page-body').innerHTML=`<div class="two-cols">${card('Profilen til '+html(x.name),'paw',`<form id="profile-form">${field('Hundens navn','dog-name',x.name,'text',60)}${field('Rase, blandingshund eller ukjent rase','dog-breed',x.breed)}${field('Alder ved registrering (år eller måneder)','dog-age',x.age,'text',50)}<label class="field">Kjønn<select name="dog-sex" id="dog-sex">${['Ikke oppgitt','Hann','Hunn'].map(s=>`<option${x.sex===s?' selected':''}>${s}</option>`).join('')}</select></label>${errorSlot}<button class="btn">Lagre profil</button></form>`)}<div class="stack">${card('Deres lille hverdagsbok','heart','<p class="muted">Profilen hjelper deg å samle turer, måltider og familie. Alderen er den du oppga ved registrering, og oppdateres manuelt.</p>')}<div class="notice">Nika er en lokal demo. Dataene deles ikke og er ingen sikkerhetskopi. Vi gir ikke individuelle helse- eller kostråd.</div></div></div>`;
- $('profile-form').onsubmit=e=>{e.preventDefault();const name=clean($('dog-name').value,60),breed=clean($('dog-breed').value),a=age($('dog-age').value);if(!name||!breed||!a){$('form-error').textContent='Fyll inn navn, rase og en gyldig alder med år eller måneder.';return;}d.dog={name,breed,age:a,sex:$('dog-sex').value};save();render();notify('Profilen er oppdatert.');};}
-function walks(){const active=d.active;
- let current=active?`<span class="live-dot">Tur pågår · startet ${clock(active.start)}</span><div class="timer" data-timer>${duration(Date.now()-active.start)}</div><p class="subline">${count(active,'pee')} tissing · ${count(active,'poop')} bæsjing</p><div class="event-buttons">${btn(`${icon('drop')}Tisset`,'pee')}${btn('Bæsjet','poop')}</div>${btn('Avslutt og lagre tur','endwalk','')}<ul class="list">${active.events.slice().reverse().map(ev=>`<li class="row"><span>${ev.type==='pee'?'Tisset':'Bæsjet'} · ${clock(ev.at)}</span>${btn('Angre','undo-event','secondary small',ev.id)}</li>`).join('')}</ul>${active.legacyCounts?'<p class="subline">Hendelser fra den gamle demoen er bevart som antall uten tidspunkt.</p>':''}`:`${empty('Klar for litt frisk luft? Start turen når dere går ut.')}<p class="subline">Varighet og hendelser lagres. Ingen GPS eller rutesporing.</p>${btn('Start ny luftetur','startwalk','')}`;
- $('page-body').innerHTML=`<div class="two-cols"><div class="stack">${card('Lufteturen deres','walk',current)}${card('Favorittsteder','pin',`<p class="subline">Dine egne stedsnavn, uten GPS. Vi utleder ikke trivsel fra hendelser.</p><form id="place-form">${field('Navn på favorittsted','place-name','','text',100)}<button class="btn secondary">Legg til sted</button><p class="error" id="place-error" role="alert"></p></form><ul class="list">${d.places.map(p=>`<li class="row"><strong>${html(p.name)}</strong>${btn('Fjern','remove-place','secondary small',p.id)}</li>`).join('')}</ul>`,'blue-card')}</div>${card('Turhistorikk','clock',d.walks.length?`<ul class="list">${d.walks.slice().reverse().map(w=>`<li><div class="row"><strong>${dateTime(w.start)}</strong><span class="badge">${duration(w.durationMs)}</span></div><p class="muted">${count(w,'pee')} tissing · ${count(w,'poop')} bæsjing${w.legacy?' · varighet fra eldre demo':''}</p>${w.events.length?`<details><summary>Vis hendelser</summary><ul>${w.events.map(ev=>`<li>${ev.type==='pee'?'Tisset':'Bæsjet'} · ${clock(ev.at)}</li>`).join('')}</ul></details>`:''}</li>`).join('')}</ul>`:empty('Her dukker turene opp når du avslutter dem.<br>Ingen turer registrert ennå.'))}</div>`;
- $('place-form').onsubmit=e=>{e.preventDefault();const name=clean($('place-name').value);if(!name){$('place-error').textContent='Skriv et stedsnavn.';return;}if(d.places.some(p=>p.name.toLowerCase()===name.toLowerCase())){$('place-error').textContent='Dette stedet er allerede lagt til.';return;}d.places.push({id:uid(),name});save();render();notify('Favorittstedet er lagt til.');};
-}
-function meals(){const edit=d.meals.find(m=>m.id===mealEdit);$('page-body').innerHTML=`<div class="two-cols"><div class="stack">${card(edit?'Rediger måltid':'Legg til et måltid','bowl',`<form id="meal-form">${field('Tidspunkt hver dag','meal-time',edit?.time||'17:00','time')}${field('Fôr eller beskrivelse','meal-food',edit?.food||'')}<p class="subline">Bruk hundens etablerte fôrplan for mengde og innhold. Nika beregner ikke porsjoner.</p>${errorSlot}<div class="form-actions"><button class="btn">${edit?'Lagre endringer':'Legg til måltid'}</button>${edit?btn('Avbryt','cancel-meal'):''}</div></form>`,'beige-card')}${card('Gjennomførte måltider','check',d.feedings.length?`<ul class="list">${d.feedings.slice().reverse().map(f=>`<li><strong>${html(f.food)}</strong><p class="muted">Gitt ${dateTime(f.at)} · dagsplan ${f.day}</p>${btn('Angre registrering','undo-feeding','secondary small',f.id)}</li>`).join('')}</ul>`:empty('Ingen måltider er registrert som gitt.'))}</div>${card('Dagens måltidsplan','clock',`<p class="subline">${new Date().toLocaleDateString('nb-NO',{day:'numeric',month:'long',year:'numeric'})} · Gjentas hver dag</p>${d.meals.length?`<ul class="list">${[...d.meals].sort((a,b)=>a.time.localeCompare(b.time)).map(m=>{const f=mealToday(m);return `<li><div class="row"><strong>${html(m.time)} · ${html(m.food)}</strong>${f?'<span class="badge">Gitt i dag</span>':''}</div><p class="muted">${f?`Registrert kl. ${clock(f.at)}`:'Ikke gitt i dag'}</p><div class="list-actions">${f?btn('Angre gitt','undo-feeding','secondary small',f.id):btn('Marker gitt nå','give','small',m.id)}${btn('Rediger','edit-meal','secondary small',m.id)}${btn('Slett','delete-meal','secondary small',m.id)}</div></li>`;}).join('')}</ul>`:empty('Ingen måltider i planen.<br>Legg til det første måltidet til venstre eller over.')}`)}</div>`;
- $('meal-form').onsubmit=e=>{e.preventDefault();const food=clean($('meal-food').value),time=$('meal-time').value;if(!food||!timeRE.test(time)){$('form-error').textContent='Velg et gyldig klokkeslett og skriv en beskrivelse.';return;}if(edit){edit.food=food;edit.time=time;}else d.meals.push({id:uid(),time,food});mealEdit=null;save();render();notify('Måltidsplanen er lagret.');};
-}
-function family(){const edit=d.family.find(m=>m.id===familyEdit);$('page-body').innerHTML=`<div class="notice">Dette er en lokal familieliste. Det sendes ingen invitasjoner, og data synkroniseres ikke mellom personer eller enheter.</div><div class="two-cols family-cols">${card(edit?'Rediger familiemedlem':'Plass til flere','family',`<form id="family-form">${field('Navn','member-name',edit?.name||'','text',60)}${field('Rolle','member-role',edit?.role||'Familiemedlem','text',60)}${errorSlot}<div class="form-actions"><button class="btn">${edit?'Lagre endringer':'Legg til familiemedlem'}</button>${edit?btn('Avbryt','cancel-family'):''}</div></form>`,'blue-card')}${card('Familien til '+html(d.dog.name),'heart',d.family.length?`<ul class="list">${d.family.map(m=>`<li><div class="row"><div class="member"><span class="avatar" aria-hidden="true">${html(m.name.charAt(0).toUpperCase())}</span><div><strong>${html(m.name)}</strong><p class="muted">${html(m.role)}</p></div></div><div class="list-actions">${btn('Rediger','edit-family','secondary small',m.id)}${btn('Fjern','delete-family','secondary small',m.id)}</div></div></li>`).join('')}</ul>`:empty('Her er det plass til dem som er med på hundehverdagen.<br>Ingen familiemedlemmer lagt til ennå.'))}</div>`;
- $('family-form').onsubmit=e=>{e.preventDefault();const name=clean($('member-name').value,60),role=clean($('member-role').value,60);if(!name||!role){$('form-error').textContent='Fyll inn både navn og rolle.';return;}if(edit){edit.name=name;edit.role=role;}else d.family.push({id:uid(),name,role});familyEdit=null;save();render();notify('Familielisten er oppdatert.');};
-}
-let modalReturn=null;
-function modal(content){modalReturn=document.activeElement;$('dialog-content').innerHTML=content;$('dialog').showModal();}
-function closeModal(){$('dialog').close();if(modalReturn?.isConnected)modalReturn.focus();}
-function confirmRemove(title,desc,action,id){modal(`<h2 id="dialog-title">${title}</h2><p>${desc}</p><div class="form-actions">${btn('Ja, slett',action,'danger',id)}${btn('Avbryt','close')}</div>`);}
-function privacy(){modal(`<h2 id="dialog-title">Dine data, på din enhet</h2><p>Nika er en offentlig testdemo. Profil, registreringsfremdrift, turer, måltider og familie lagres bare i denne nettleseren. De deles ikke, og lagringen er ingen sikkerhetskopi.</p><p>Demoen har ingen generell AI-chat, GPS, brukerkonto, familiedeling, aktiv QR-ID eller butikk. Ingen analyse eller posisjon samles inn.</p><p>Eksport kan inneholde opplysningene du har skrevet inn. Oppbevar filen privat. Sletting gjelder bare Nika-data i denne nettleseren.</p>${d.legacyContact?'<p>Kontaktfeltet fra den gamle demoen er bevart i lokal lagring og eksport. Det publiseres ikke.</p>':''}<div class="form-actions">${btn('Eksporter Nika-data','export')}${btn('Slett Nika-data','reset','danger')}${btn('Lukk','close')}</div>`);}
-function exportData(){let data;try{data={format:'Nika lokal eksport',exportedAt:new Date().toISOString(),current:d,stored:localStorage.getItem(KEY),legacy:localStorage.getItem(LEGACY)};}catch{data={format:'Nika økteksport',current:d};}const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='nika-data.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Eksporten er lastet ned.');}
-function correction(){modal(`<h2 id="dialog-title">Ser alt riktig ut?</h2><form id="correction-form">${field('Hundens navn','draft-name',d.draft.name,'text',60)}${field('Rase eller blandingshund','draft-breed',d.draft.breed)}${field('Alder i år eller måneder','draft-age',d.draft.age,'text',50)}${errorSlot}<div class="form-actions"><button class="btn">Oppdater oppsummering</button>${btn('Avbryt','close')}</div></form>`);$('correction-form').onsubmit=e=>{e.preventDefault();const name=clean($('draft-name').value,60),breed=clean($('draft-breed').value),a=age($('draft-age').value);if(!name||!breed||!a){$('form-error').textContent='Fyll inn navn, rase og en alder med år eller måneder.';return;}d.draft={name,breed,age:a};save();closeModal();render();};}
-function go(p){page=['home','walks','meals','family','profile'].includes(p)?p:'home';mealEdit=null;familyEdit=null;render(true);}
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.go){go(b.dataset.go);return;}const a=b.dataset.action,id=b.dataset.id;if(!a)return;
- // Ignore a physical double-click; subsequent intentional clicks remain available.
- if(e.detail>1)return;
- if(a==='close'){closeModal();return;}if(a==='privacy'){privacy();return;}if(a==='export'){exportData();return;}
- if(a==='example'){$('answer').value='Luna, golden retriever, 3 år';$('answer').focus();return;}
- if(a==='correct'){correction();return;}
- if(a==='confirm'&&!d.dog&&d.draft.name&&d.draft.breed&&age(d.draft.age)){d.dog={...d.draft,sex:'Ikke oppgitt'};save();go('home');notify(`Velkommen til Nika, ${d.dog.name}!`);return;}
- if(a==='reset'){confirmRemove('Slette alle Nika-data?','Profil, turer, måltider, familie og registreringsfremdrift fjernes fra denne nettleseren. Det finnes ingen sikkerhetskopi med mindre du selv har eksportert. Annen nettleserlagring berøres ikke.','reset-confirm');return;}
- if(a==='reset-confirm'){try{localStorage.removeItem(KEY);localStorage.removeItem(LEGACY);blocked=false;storageAvailable=true;storageIssue='';}catch{storageIssue='Nettleseren tillater ikke sletting. Lagrede data kan fortsatt finnes. Tillat nettleserlagring og prøv igjen.';showStorage();closeModal();return;}d=defaults();page='home';closeModal();render(true);notify('Nika-data er slettet.');return;}
- if(!d.dog)return;
- if(['home','profile','walks','meals','family'].includes(a)){go(a);return;}
- if(a==='startwalk'){if(!d.active){d.active={id:uid(),start:Date.now(),events:[]};save();}go('walks');return;}
- if((a==='pee'||a==='poop')&&d.active){if(Date.now()-(lastClick[a]||0)<500)return;lastClick[a]=Date.now();d.active.events.push({id:uid(),type:a,at:Date.now()});save();render();notify(a==='pee'?'Tissing registrert. Du kan angre i listen.':'Bæsjing registrert. Du kan angre i listen.');return;}
- if(a==='undo-event'&&d.active){d.active.events=d.active.events.filter(ev=>ev.id!==id);save();render();notify('Hendelsen er angret.');return;}
- if(a==='endwalk'&&d.active){const end=Date.now();d.walks.push({...d.active,end,durationMs:Math.max(0,end-d.active.start)});d.active=null;save();render();notify('Turen er lagret.');return;}
- if(a==='remove-place'){confirmRemove('Fjerne favorittstedet?','Bare navnet på favorittstedet fjernes.','remove-place-confirm',id);return;}
- if(a==='remove-place-confirm'){d.places=d.places.filter(p=>p.id!==id);closeModal();save();render();return;}
- if(a==='edit-meal'){mealEdit=id;render();$('meal-food')?.focus();return;}
- if(a==='cancel-meal'){mealEdit=null;render();return;}
- if(a==='give'){const m=d.meals.find(m=>m.id===id);if(m&&!mealToday(m)){d.feedings.push({id:uid(),mealId:m.id,food:m.food,day:dateKey(),at:Date.now()});save();render();notify('Måltidet er registrert som gitt nå.');}return;}
- if(a==='undo-feeding'){d.feedings=d.feedings.filter(f=>f.id!==id);save();render();notify('Måltidsregistreringen er angret.');return;}
- if(a==='delete-meal'){confirmRemove('Slette det planlagte måltidet?','Måltidet fjernes fra dagsplanen. Tidligere registreringer bevares i historikken.','delete-meal-confirm',id);return;}
- if(a==='delete-meal-confirm'){d.meals=d.meals.filter(m=>m.id!==id);mealEdit=null;closeModal();save();render();return;}
- if(a==='edit-family'){familyEdit=id;render();$('member-name')?.focus();return;}
- if(a==='cancel-family'){familyEdit=null;render();return;}
- if(a==='delete-family'){confirmRemove('Fjerne familiemedlemmet?','Personen fjernes bare fra listen på denne enheten. Det sendes ingen melding.','delete-family-confirm',id);return;}
- if(a==='delete-family-confirm'){d.family=d.family.filter(m=>m.id!==id);familyEdit=null;closeModal();save();render();return;}
-});
-document.addEventListener('click',e=>{const a=e.target.closest('a[href="#home"]');if(a){e.preventDefault();go('home');}});
-$('dialog').addEventListener('click',e=>{if(e.target===$('dialog'))closeModal();});
-let today=dateKey();setInterval(()=>{if(d.active)document.querySelectorAll('[data-timer]').forEach(el=>el.textContent=duration(Date.now()-d.active.start));if(today!==dateKey()){today=dateKey();if(d.dog&&['home','meals'].includes(page)&&!$('dialog').open)render();}},1000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&today!==dateKey()){today=dateKey();render();}});
-window.addEventListener('storage',e=>{if(e.key===KEY||e.key===LEGACY){storageIssue='Nika-data er endret i en annen fane. Oppdater denne siden før du fortsetter, slik at endringer ikke overskrives.';blocked=true;showStorage();document.querySelectorAll('#content input,#content button,#content select').forEach(el=>el.disabled=true);}});
-render();
+  const KEY = "nika-demo-v2",
+    LEGACY = "nika-mvp-v1";
+  const $ = (id) => document.getElementById(id),
+    html = (s) =>
+      String(s ?? "").replace(
+        /[&<>"']/g,
+        (c) =>
+          ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          })[c],
+      );
+  const uid = () => crypto.randomUUID(),
+    clean = (s, n = 100) => (typeof s === "string" ? s.trim().slice(0, n) : ""),
+    validText = (s, n = 100) =>
+      typeof s === "string" && s.trim().length > 0 && s.length <= n;
+  const finite = (n) => Number.isFinite(n) && n >= 0,
+    stamp = (n) => finite(n) && n <= Date.now() + 60000;
+  const timeRE = /^([01]\d|2[0-3]):[0-5]\d$/;
+  const dateKey = (date = new Date()) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const dateTime = (n) =>
+    new Date(n).toLocaleString("nb-NO", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  const clock = (n) =>
+    new Date(n).toLocaleTimeString("nb-NO", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  const duration = (ms) => {
+    let s = Math.max(0, Math.floor(ms / 1000));
+    return s < 60 ? `${s} sek` : `${Math.floor(s / 60)} min ${s % 60} sek`;
+  };
+  function age(v) {
+    const m = clean(v)
+      .toLowerCase()
+      .match(
+        /^(\d+(?:[.,]\d+)?)\s*(år|år gammel|mnd\.?|måned(?:er)?)(?:\s+gammel)?$/,
+      );
+    if (!m) return null;
+    const n = Number(m[1].replace(",", ".")),
+      months = m[2].startsWith("år") ? n * 12 : n;
+    return months > 0 && months <= 360
+      ? `${n} ${m[2].startsWith("år") ? "år" : n === 1 ? "måned" : "måneder"}`
+      : null;
+  }
+  const defaults = () => ({
+    version: 2,
+    dog: null,
+    draft: { name: "", breed: "", age: "" },
+    walks: [],
+    active: null,
+    meals: [],
+    feedings: [],
+    family: [],
+    places: [],
+    legacyContact: "",
+    revision: 0,
+  });
+  function validDog(d) {
+    return (
+      d &&
+      validText(d.name, 60) &&
+      validText(d.breed, 100) &&
+      validText(d.age, 50) &&
+      validText(d.sex, 30)
+    );
+  }
+  function validate(d) {
+    if (
+      !d ||
+      d.version !== 2 ||
+      !d.draft ||
+      !["name", "breed", "age"].every(
+        (k) => typeof d.draft[k] === "string" && d.draft[k].length <= 100,
+      ) ||
+      (d.dog !== null && !validDog(d.dog))
+    )
+      throw Error("Ugyldig profil");
+    for (const k of ["walks", "meals", "feedings", "family", "places"])
+      if (!Array.isArray(d[k])) throw Error("Ugyldig liste");
+    const evt = (e) =>
+      e &&
+      typeof e.id === "string" &&
+      ["pee", "poop"].includes(e.type) &&
+      stamp(e.at);
+    const walk = (w) =>
+      w &&
+      typeof w.id === "string" &&
+      stamp(w.start) &&
+      Array.isArray(w.events) &&
+      w.events.every(evt) &&
+      (!w.legacyCounts ||
+        ["pee", "poop"].every(
+          (k) => Number.isInteger(w.legacyCounts[k]) && w.legacyCounts[k] >= 0,
+        ));
+    if (d.active !== null && !walk(d.active)) throw Error("Ugyldig aktiv tur");
+    if (
+      !d.walks.every(
+        (w) =>
+          walk(w) && stamp(w.end) && w.end >= w.start && finite(w.durationMs),
+      )
+    )
+      throw Error("Ugyldig turhistorikk");
+    if (
+      !d.meals.every(
+        (m) =>
+          m &&
+          typeof m.id === "string" &&
+          timeRE.test(m.time) &&
+          validText(m.food, 100),
+      )
+    )
+      throw Error("Ugyldig måltidsplan");
+    if (
+      !d.feedings.every(
+        (f) =>
+          f &&
+          typeof f.id === "string" &&
+          typeof f.mealId === "string" &&
+          /^\d{4}-\d{2}-\d{2}$/.test(f.day) &&
+          stamp(f.at) &&
+          validText(f.food, 100),
+      )
+    )
+      throw Error("Ugyldig måltidshistorikk");
+    if (
+      !d.family.every(
+        (m) =>
+          m &&
+          typeof m.id === "string" &&
+          validText(m.name, 60) &&
+          validText(m.role, 60),
+      )
+    )
+      throw Error("Ugyldig familie");
+    if (
+      !d.places.every(
+        (p) => p && typeof p.id === "string" && validText(p.name, 100),
+      )
+    )
+      throw Error("Ugyldig favorittsted");
+    return { ...defaults(), ...d };
+  }
+  function migrate(v) {
+    if (!v || typeof v !== "object" || Array.isArray(v))
+      throw Error("Ugyldige eldre data");
+    const d = defaults();
+    if (v.dog) {
+      if (
+        !validText(v.dog.name, 60) ||
+        !validText(v.dog.breed, 100) ||
+        !validText(v.dog.age, 50)
+      )
+        throw Error("Eldre profil må gjenopprettes");
+      d.dog = {
+        name: v.dog.name,
+        breed: v.dog.breed,
+        age: v.dog.age,
+        sex: clean(v.dog.sex, 30) || "Ikke oppgitt",
+      };
+    }
+    d.draft = { name: clean(v.name, 60), breed: clean(v.breed), age: "" };
+    if (v.walks !== undefined && !Array.isArray(v.walks))
+      throw Error("Ugyldig eldre turhistorikk");
+    for (const w of v.walks || []) {
+      if (
+        !stamp(w.start) ||
+        !finite(w.minutes) ||
+        !["pee", "poop"].every((k) => Number.isInteger(w[k]) && w[k] >= 0)
+      )
+        throw Error("Ugyldig eldre tur");
+      const ms = w.minutes * 60000;
+      d.walks.push({
+        id: uid(),
+        start: w.start,
+        end: Math.min(Date.now(), w.start + ms),
+        durationMs: ms,
+        events: [],
+        legacyCounts: { pee: w.pee, poop: w.poop },
+        legacy: true,
+      });
+    }
+    if (v.active) {
+      if (
+        !stamp(v.active.start) ||
+        !["pee", "poop"].every(
+          (k) => Number.isInteger(v.active[k]) && v.active[k] >= 0,
+        )
+      )
+        throw Error("Ugyldig eldre aktiv tur");
+      d.active = {
+        id: uid(),
+        start: v.active.start,
+        events: [],
+        legacyCounts: { pee: v.active.pee, poop: v.active.poop },
+      };
+    }
+    if (v.meals !== undefined && !Array.isArray(v.meals))
+      throw Error("Ugyldig eldre måltidsplan");
+    for (const m of v.meals || []) {
+      if (!timeRE.test(m.time) || !validText(m.food, 100))
+        throw Error("Ugyldig eldre måltid");
+      d.meals.push({ id: uid(), time: m.time, food: m.food });
+    }
+    if (v.family !== undefined && !Array.isArray(v.family))
+      throw Error("Ugyldig eldre familie");
+    for (const m of v.family || []) {
+      if (!validText(m, 60)) throw Error("Ugyldig eldre familiemedlem");
+      d.family.push({ id: uid(), name: m, role: "Familiemedlem" });
+    }
+    d.legacyContact = clean(v.contact, 200);
+    return d;
+  }
+  let d = defaults(),
+    storageIssue = "",
+    blocked = false,
+    storageAvailable = true,
+    page = "home",
+    mealEdit = null,
+    familyEdit = null,
+    toastTimer,
+    lastClick = {};
+  try {
+    const raw = localStorage.getItem(KEY),
+      old = localStorage.getItem(LEGACY);
+    if (raw) d = validate(JSON.parse(raw));
+    else if (old) {
+      d = migrate(JSON.parse(old));
+      localStorage.setItem(KEY, JSON.stringify(d));
+      storageIssue =
+        "Dataene dine er flyttet til den nye demoen. Originalen er bevart. Gamle «gitt»-markeringer manglet dato og er ikke overført; måltidsplanen er bevart.";
+    }
+  } catch (e) {
+    if (e.name === "SecurityError" || e.name === "QuotaExceededError") {
+      storageAvailable = false;
+      storageIssue =
+        "Nettleseren tillater ikke lagring. Du kan bruke demoen i denne økten, men nye endringer forsvinner ved oppdatering.";
+    } else {
+      blocked = true;
+      storageIssue =
+        "Lagrede Nika-data kunne ikke leses. Originalen er urørt. Endringer lagres ikke før du har eksportert eller slettet Nika-data i «Om demoen og dine data».";
+    }
+  }
+  function showStorage() {
+    const el = $("storage-alert");
+    el.hidden = !storageIssue;
+    el.textContent = storageIssue;
+  }
+  function save() {
+    d.revision++;
+    if (blocked) {
+      showStorage();
+      return false;
+    }
+    try {
+      localStorage.setItem(KEY, JSON.stringify(d));
+      if (!storageAvailable) {
+        storageAvailable = true;
+        storageIssue = "Lagring fungerer igjen. Endringene er lagret.";
+      }
+      showStorage();
+      return true;
+    } catch (e) {
+      storageAvailable = false;
+      storageIssue =
+        "Kunne ikke lagre. Endringene finnes bare i denne økten og forsvinner ved oppdatering. Frigjør plass eller tillat lokal lagring. Du kan eksportere Nika-data under «Om demoen og dine data».";
+      showStorage();
+      return false;
+    }
+  }
+  function notify(s) {
+    $("toast").textContent = s;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => ($("toast").textContent = ""), 4000);
+  }
+  const paths = {
+    paw: "M6 16c1-6 7-7 10-2 2 2 5 4 3 6-2 2-5-1-7-1s-5 2-7 0c-1-1 0-2 1-3M4 9v1m5-5v2m6-2v2m5 3v1",
+    walk: "M4 18c5-2 2-8 7-8s1 8 7 8h3M5 5h.01M18 4l1 3 3 1-3 1-1 3-1-3-3-1 3-1z",
+    bowl: "M3 12h18c0 7-3 9-9 9s-9-2-9-9zM8 4v3m4-4v4m4-3v3",
+    family:
+      "M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm8-1a3 3 0 1 0 0-6M2 21v-2a6 6 0 0 1 12 0v2m3-6a5 5 0 0 1 5 5v1",
+    heart: "M12 21S2 14 2 8a5 5 0 0 1 10-1 5 5 0 0 1 10 1c0 6-10 13-10 13z",
+    leaf: "M20 3C7 2 2 8 5 15s15 6 15-12zM4 21L16 8",
+    shield: "M12 2l9 4v6c0 5-9 10-9 10S3 17 3 12V6zM8 12l3 3 5-6",
+    clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 4v5l4 2",
+    pin: "M12 22s8-9 8-14a8 8 0 1 0-16 0c0 5 8 14 8 14zm0-17a3 3 0 1 0 0 6 3 3 0 0 0 0-6",
+    drop: "M12 2S4 11 4 16a8 8 0 0 0 16 0c0-5-8-14-8-14z",
+    check: "M5 12l4 4L19 6",
+    arrow: "M4 12h16m-6-6 6 6-6 6",
+  };
+  const icon = (n) =>
+    `<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="${paths[n] || paths.paw}"/></svg></span>`;
+  const btn = (label, action, cls = "secondary", id = "") =>
+    `<button class="btn ${cls}" data-action="${action}"${id ? ` data-id="${html(id)}"` : ""}>${label}</button>`;
+  const card = (title, ico, body, cls = "", extra = "") =>
+    `<section class="card ${cls}"><div class="card-top"><h3>${icon(ico)}${title}</h3>${extra}</div>${body}</section>`;
+  const empty = (s) => `<p class="empty">${s}</p>`;
+  const field = (label, name, value = "", type = "text", max = 100) =>
+    `<label class="field">${label}<input name="${name}" id="${name}" type="${type}" value="${html(value)}" required maxlength="${max}" autocomplete="off"></label>`;
+  const errorSlot = '<p class="error" id="form-error" role="alert"></p>';
+  const count = (w, t) =>
+    w.events.filter((e) => e.type === t).length + (w.legacyCounts?.[t] || 0);
+  function mealToday(m) {
+    return d.feedings.find((f) => f.mealId === m.id && f.day === dateKey());
+  }
+  function nextMeal() {
+    let list = d.meals
+      .filter((m) => !mealToday(m))
+      .sort((a, b) => a.time.localeCompare(b.time));
+    return (
+      list.find((m) => m.time >= new Date().toTimeString().slice(0, 5)) ||
+      list[0] ||
+      null
+    );
+  }
+  function nav() {
+    const tabs = d.dog
+      ? [
+          ["home", "Oversikt"],
+          ["walks", "Turer"],
+          ["meals", "Måltider"],
+          ["family", "Familie"],
+          ["profile", "Min hund"],
+        ]
+      : [];
+    $("nav").innerHTML = tabs
+      .map(
+        ([p, n]) =>
+          `<button data-go="${p}"${p === page ? ' aria-current="page"' : ""}>${n}</button>`,
+      )
+      .join("");
+  }
+  function render(focus = false) {
+    nav();
+    showStorage();
+    if (!d.dog) onboarding();
+    else dashboardPage();
+    if (focus) $("content").focus({ preventScroll: true });
+  }
+  function onboarding() {
+    const step = !d.draft.name ? 0 : !d.draft.breed ? 1 : !d.draft.age ? 2 : 3;
+    const questions = [
+      "Hei, så hyggelig å se deg! Jeg hjelper deg å samle hundens hverdag. Hva heter hunden din?",
+      "Et fint navn! Hvilken rase er hunden? Blandingshund og ukjent rase går også helt fint.",
+      "Hvor gammel er hunden? Skriv alder i år eller måneder, for eksempel «3 år» eller «8 måneder».",
+    ];
+    let msgs = `<div class="bubble">${questions[0]}</div>`;
+    if (d.draft.name)
+      msgs += `<div class="bubble mine">${html(d.draft.name)}</div><div class="bubble">${questions[1]}</div>`;
+    if (d.draft.breed)
+      msgs += `<div class="bubble mine">${html(d.draft.breed)}</div><div class="bubble">${questions[2]}</div>`;
+    if (d.draft.age)
+      msgs += `<div class="bubble mine">${html(d.draft.age)}</div><div class="bubble">Da har jeg det jeg trenger. Ser dette riktig ut?</div>`;
+    $("content").innerHTML =
+      `<section class="welcome-top"><span class="eyebrow">DIN HUND. DIN FAMILIE. DERES HVERDAG.</span><h1>Et bedre liv <em>sammen</em></h1><p>Litt mer oversikt. Litt mindre å huske på.<br>Og mer tid til det som betyr noe.</p></section><div class="onboard-scene"><aside class="dog-scene" aria-label="Velkommen til Nika"><img src="assets/nika-dog.svg" alt="Vennlig illustrert hund med grønt halsbånd" width="620" height="680"><div class="floating-note note-one">${icon("heart")}<span><b>En del av familien</b>Hver eneste dag.</span></div><div class="floating-note note-two">${icon("leaf")}<span><b>Små turer. Store øyeblikk.</b>En enklere hverdag sammen.</span></div></aside><section class="chat" aria-label="Registrer hunden din"><div class="chat-head"><div class="chat-id"><img src="assets/paw.svg" alt="" width="38" height="38"><div><strong>Hei, jeg er Nika</strong><span>La oss bli litt kjent</span></div></div><span class="chat-step">${step === 3 ? "Klar til å bekrefte" : `Steg ${step + 1} av 3`}</span></div><div class="messages" id="messages" role="log" aria-label="Registreringssamtale">${msgs}</div>${step < 3 ? `<form id="onboard-form" class="chat-form"><input id="answer" name="answer" aria-label="Svar til Nika" placeholder="${["Hundens navn …", "Rase eller blandingshund …", "For eksempel 3 år …"][step]}" maxlength="200" required autocomplete="off"><button class="send" aria-label="Send svar">↑</button></form><p class="error chat-help" id="onboard-error" role="alert"></p>${step === 0 ? '<button class="quick-example" data-action="example">Du kan også skrive: «Luna, golden retriever, 3 år»</button>' : ""}` : `<div class="onboard-summary"><h3>En liten oppsummering</h3><dl class="details"><div><dt>Navn</dt><dd>${html(d.draft.name)}</dd></div><div><dt>Rase</dt><dd>${html(d.draft.breed)}</dd></div><div><dt>Alder</dt><dd>${html(d.draft.age)}</dd></div></dl><div class="form-actions">${btn("Ja, opprett profilen", "confirm", "")}${btn("Korriger", "correct")}</div></div>`}<p class="chat-help">En veiviser for registrering, ikke AI-rådgivning.<br>Opplysningene lagres bare i denne nettleseren.</p></section></div><div class="trust-row"><span>${icon("shield")}Privat og lokalt</span><span>${icon("paw")}Laget for hundehverdagen</span><span>${icon("heart")}Plass til hele familien</span></div>`;
+    const msgsEl = $("messages");
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+    const form = $("onboard-form");
+    if (form)
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const v = $("answer").value.trim();
+        let err = "";
+        if (!v) err = "Skriv et svar først.";
+        else if (step === 0) {
+          const combined = v.split(",").map((s) => s.trim());
+          if (combined.length === 3) {
+            const a = age(combined[2]);
+            if (
+              !validText(combined[0], 60) ||
+              !validText(combined[1], 100) ||
+              !a
+            )
+              err =
+                "Bruk navn, rase og alder med enhet, for eksempel «Luna, ukjent rase, 8 måneder».";
+            else d.draft = { name: combined[0], breed: combined[1], age: a };
+          } else if (!validText(v, 60)) err = "Navnet kan ha inntil 60 tegn.";
+          else d.draft.name = v;
+        } else if (step === 1) {
+          if (!validText(v, 100))
+            err =
+              "Skriv en rase, blandingshund eller ukjent rase (inntil 100 tegn).";
+          else d.draft.breed = v;
+        } else {
+          const a = age(v);
+          if (!a)
+            err =
+              "Skriv en alder over 0 og inntil 30 år, med år eller måneder.";
+          else d.draft.age = a;
+        }
+        if (err) {
+          $("onboard-error").textContent = err;
+          return;
+        }
+        save();
+        onboarding();
+        $("answer")?.focus();
+      };
+  }
+  function dashboardPage() {
+    if (page === "home") {
+      home();
+      return;
+    }
+    const titles = {
+      profile: ["Min hund", "En liten profil. En stor personlighet."],
+      walks: ["Ut på tur", "Frisk luft og små øyeblikk, samlet på ett sted."],
+      meals: [
+        "Tid for mat",
+        "En enkel dagsplan, med oversikt over det som er gitt.",
+      ],
+      family: [
+        "Hele familien",
+        "Gjør det enklere å holde oversikt over hvem som er med.",
+      ],
+    };
+    const [title, desc] = titles[page] || titles.home || ["Oversikt", ""];
+    $("content").innerHTML =
+      `<div class="page-head"><div><span class="eyebrow">HVERDAGEN MED ${html(d.dog.name.toUpperCase())}</span><h1>${title}</h1><p>${desc}</p></div>${btn("Til oversikten", "home")}</div><div id="page-body"></div>`;
+    if (page === "profile") profile();
+    if (page === "walks") walks();
+    if (page === "meals") meals();
+    if (page === "family") family();
+  }
+  function home() {
+    const dog = d.dog,
+      last = d.walks.at(-1),
+      m = nextMeal();
+    $("content").innerHTML =
+      `<div class="welcome-banner"><div><span class="date">${new Date().toLocaleDateString("nb-NO", { weekday: "long", day: "numeric", month: "long" })}</span><h1>Hei, ${html(dog.name)} <span aria-hidden="true">♡</span></h1><p>En god hverdag begynner med de små tingene.<br>Her har du oversikten deres.</p>${btn(`${icon("walk")}${d.active ? "Fortsett turen" : "Start luftetur"}`, d.active ? "walks" : "startwalk", "")}</div><img class="banner-dog" src="assets/nika-dog.svg" alt="" width="620" height="680"></div><div class="dashboard-grid">
+ <section class="card profile-card"><div class="card-top"><h3>${icon("paw")}Min beste venn</h3><span class="badge">Din hund</span></div><img class="profile-art" src="assets/nika-dog.svg" alt="Illustrasjon av en hund" width="155" height="155"><h2>${html(dog.name)}</h2><p class="muted">Et helt spesielt familiemedlem.</p><dl class="details"><div><dt>Rase</dt><dd>${html(dog.breed)}</dd></div><div><dt>Alder ved registrering</dt><dd>${html(dog.age)}</dd></div><div><dt>Kjønn</dt><dd>${html(dog.sex)}</dd></div></dl>${btn("Se og rediger profil", "profile")}</section>
+ ${card(d.active ? "På tur nå" : "Siste luftetur", "walk", d.active ? `<div class="metric" data-timer>${duration(Date.now() - d.active.start)}</div><p class="subline">${count(d.active, "pee")} tissing · ${count(d.active, "poop")} bæsjing</p>${btn("Åpne aktiv tur", "walks")}` : last ? `<div class="metric">${duration(last.durationMs)}</div><p class="subline">${dateTime(last.start)}<br>${count(last, "pee")} tissing · ${count(last, "poop")} bæsjing</p>${btn("Se turhistorikk", "walks")}` : empty("Den første turen venter.<br>Ta med Nika neste gang dere går ut.") + btn("Start den første turen", "startwalk"))}
+ ${card("Neste måltid", "bowl", m ? `<div class="metric">${html(m.time)}</div><p class="subline">${html(m.food)} · ikke gitt i dag</p>${btn("Åpne måltider", "meals")}` : empty(d.meals.length ? "Alle planlagte måltider er gitt i dag. En ny plan venter i morgen." : "Ingen måltider planlagt ennå.<br>Legg inn tidene som passer dere.") + btn("Planlegg et måltid", "meals"), "beige-card")}
+ ${card("Familien vår", "family", d.family.length ? `<div class="metric">${d.family.length} <small>${d.family.length === 1 ? "familiemedlem" : "familiemedlemmer"}</small></div><p class="subline">Kun en lokal oversikt på denne enheten.</p>${btn("Se familien", "family")}` : empty("Hvem deler hundehverdagen?<br>Legg til familien i den lokale oversikten.") + btn("Legg til familie", "family"), "blue-card")}
+ ${card("Favorittstedene deres", "pin", d.places.length ? `<p class="subline">${d.places.map((p) => html(p.name)).join(" · ")}</p>${btn("Se favorittsteder", "walks")}` : empty("Et skogholt eller en fast liten runde?<br>Dere velger selv favorittene.") + btn("Legg til et sted", "walks"))}
+ </div><div class="shortcuts">${btn("Alle turer", "walks")}${btn("Måltidsplan", "meals")}${btn("Om denne demoen", "privacy")}</div>`;
+  }
+  function profile() {
+    const x = d.dog;
+    $("page-body").innerHTML =
+      `<div class="two-cols">${card("Profilen til " + html(x.name), "paw", `<form id="profile-form">${field("Hundens navn", "dog-name", x.name, "text", 60)}${field("Rase, blandingshund eller ukjent rase", "dog-breed", x.breed)}${field("Alder ved registrering (år eller måneder)", "dog-age", x.age, "text", 50)}<label class="field">Kjønn<select name="dog-sex" id="dog-sex">${["Ikke oppgitt", "Hann", "Hunn"].map((s) => `<option${x.sex === s ? " selected" : ""}>${s}</option>`).join("")}</select></label>${errorSlot}<button class="btn">Lagre profil</button></form>`)}<div class="stack">${card("Deres lille hverdagsbok", "heart", '<p class="muted">Profilen hjelper deg å samle turer, måltider og familie. Alderen er den du oppga ved registrering, og oppdateres manuelt.</p>')}<div class="notice">Nika er en lokal demo. Dataene deles ikke og er ingen sikkerhetskopi. Vi gir ikke individuelle helse- eller kostråd.</div></div></div>`;
+    $("profile-form").onsubmit = (e) => {
+      e.preventDefault();
+      const name = clean($("dog-name").value, 60),
+        breed = clean($("dog-breed").value),
+        a = age($("dog-age").value);
+      if (!name || !breed || !a) {
+        $("form-error").textContent =
+          "Fyll inn navn, rase og en gyldig alder med år eller måneder.";
+        return;
+      }
+      d.dog = { name, breed, age: a, sex: $("dog-sex").value };
+      save();
+      render();
+      notify("Profilen er oppdatert.");
+    };
+  }
+  function walks() {
+    const active = d.active;
+    let current = active
+      ? `<span class="live-dot">Tur pågår · startet ${clock(active.start)}</span><div class="timer" data-timer>${duration(Date.now() - active.start)}</div><p class="subline">${count(active, "pee")} tissing · ${count(active, "poop")} bæsjing</p><div class="event-buttons">${btn(`${icon("drop")}Tisset`, "pee")}${btn("Bæsjet", "poop")}</div>${btn("Avslutt og lagre tur", "endwalk", "")}<ul class="list">${active.events
+          .slice()
+          .reverse()
+          .map(
+            (ev) =>
+              `<li class="row"><span>${ev.type === "pee" ? "Tisset" : "Bæsjet"} · ${clock(ev.at)}</span>${btn("Angre", "undo-event", "secondary small", ev.id)}</li>`,
+          )
+          .join(
+            "",
+          )}</ul>${active.legacyCounts ? '<p class="subline">Hendelser fra den gamle demoen er bevart som antall uten tidspunkt.</p>' : ""}`
+      : `${empty("Klar for litt frisk luft? Start turen når dere går ut.")}<p class="subline">Varighet og hendelser lagres. Ingen GPS eller rutesporing.</p>${btn("Start ny luftetur", "startwalk", "")}`;
+    $("page-body").innerHTML =
+      `<div class="two-cols"><div class="stack">${card("Lufteturen deres", "walk", current)}${card("Favorittsteder", "pin", `<p class="subline">Dine egne stedsnavn, uten GPS. Vi utleder ikke trivsel fra hendelser.</p><form id="place-form">${field("Navn på favorittsted", "place-name", "", "text", 100)}<button class="btn secondary">Legg til sted</button><p class="error" id="place-error" role="alert"></p></form><ul class="list">${d.places.map((p) => `<li class="row"><strong>${html(p.name)}</strong>${btn("Fjern", "remove-place", "secondary small", p.id)}</li>`).join("")}</ul>`, "blue-card")}</div>${card(
+        "Turhistorikk",
+        "clock",
+        d.walks.length
+          ? `<ul class="list">${d.walks
+              .slice()
+              .reverse()
+              .map(
+                (w) =>
+                  `<li><div class="row"><strong>${dateTime(w.start)}</strong><span class="badge">${duration(w.durationMs)}</span></div><p class="muted">${count(w, "pee")} tissing · ${count(w, "poop")} bæsjing${w.legacy ? " · varighet fra eldre demo" : ""}</p>${w.events.length ? `<details><summary>Vis hendelser</summary><ul>${w.events.map((ev) => `<li>${ev.type === "pee" ? "Tisset" : "Bæsjet"} · ${clock(ev.at)}</li>`).join("")}</ul></details>` : ""}</li>`,
+              )
+              .join("")}</ul>`
+          : empty(
+              "Her dukker turene opp når du avslutter dem.<br>Ingen turer registrert ennå.",
+            ),
+      )}</div>`;
+    $("place-form").onsubmit = (e) => {
+      e.preventDefault();
+      const name = clean($("place-name").value);
+      if (!name) {
+        $("place-error").textContent = "Skriv et stedsnavn.";
+        return;
+      }
+      if (d.places.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
+        $("place-error").textContent = "Dette stedet er allerede lagt til.";
+        return;
+      }
+      d.places.push({ id: uid(), name });
+      save();
+      render();
+      notify("Favorittstedet er lagt til.");
+    };
+  }
+  function meals() {
+    const edit = d.meals.find((m) => m.id === mealEdit);
+    $("page-body").innerHTML =
+      `<div class="two-cols"><div class="stack">${card(edit ? "Rediger måltid" : "Legg til et måltid", "bowl", `<form id="meal-form">${field("Tidspunkt hver dag", "meal-time", edit?.time || "17:00", "time")}${field("Fôr eller beskrivelse", "meal-food", edit?.food || "")}<p class="subline">Bruk hundens etablerte fôrplan for mengde og innhold. Nika beregner ikke porsjoner.</p>${errorSlot}<div class="form-actions"><button class="btn">${edit ? "Lagre endringer" : "Legg til måltid"}</button>${edit ? btn("Avbryt", "cancel-meal") : ""}</div></form>`, "beige-card")}${card(
+        "Gjennomførte måltider",
+        "check",
+        d.feedings.length
+          ? `<ul class="list">${d.feedings
+              .slice()
+              .reverse()
+              .map(
+                (f) =>
+                  `<li><strong>${html(f.food)}</strong><p class="muted">Gitt ${dateTime(f.at)} · dagsplan ${f.day}</p>${btn("Angre registrering", "undo-feeding", "secondary small", f.id)}</li>`,
+              )
+              .join("")}</ul>`
+          : empty("Ingen måltider er registrert som gitt."),
+      )}</div>${card(
+        "Dagens måltidsplan",
+        "clock",
+        `<p class="subline">${new Date().toLocaleDateString("nb-NO", { day: "numeric", month: "long", year: "numeric" })} · Gjentas hver dag</p>${
+          d.meals.length
+            ? `<ul class="list">${[...d.meals]
+                .sort((a, b) => a.time.localeCompare(b.time))
+                .map((m) => {
+                  const f = mealToday(m);
+                  return `<li><div class="row"><strong>${html(m.time)} · ${html(m.food)}</strong>${f ? '<span class="badge">Gitt i dag</span>' : ""}</div><p class="muted">${f ? `Registrert kl. ${clock(f.at)}` : "Ikke gitt i dag"}</p><div class="list-actions">${f ? btn("Angre gitt", "undo-feeding", "secondary small", f.id) : btn("Marker gitt nå", "give", "small", m.id)}${btn("Rediger", "edit-meal", "secondary small", m.id)}${btn("Slett", "delete-meal", "secondary small", m.id)}</div></li>`;
+                })
+                .join("")}</ul>`
+            : empty(
+                "Ingen måltider i planen.<br>Legg til det første måltidet til venstre eller over.",
+              )
+        }`,
+      )}</div>`;
+    $("meal-form").onsubmit = (e) => {
+      e.preventDefault();
+      const food = clean($("meal-food").value),
+        time = $("meal-time").value;
+      if (!food || !timeRE.test(time)) {
+        $("form-error").textContent =
+          "Velg et gyldig klokkeslett og skriv en beskrivelse.";
+        return;
+      }
+      if (edit) {
+        edit.food = food;
+        edit.time = time;
+      } else d.meals.push({ id: uid(), time, food });
+      mealEdit = null;
+      save();
+      render();
+      notify("Måltidsplanen er lagret.");
+    };
+  }
+  function family() {
+    const edit = d.family.find((m) => m.id === familyEdit);
+    $("page-body").innerHTML =
+      `<div class="notice">Dette er en lokal familieliste. Det sendes ingen invitasjoner, og data synkroniseres ikke mellom personer eller enheter.</div><div class="two-cols family-cols">${card(edit ? "Rediger familiemedlem" : "Plass til flere", "family", `<form id="family-form">${field("Navn", "member-name", edit?.name || "", "text", 60)}${field("Rolle", "member-role", edit?.role || "Familiemedlem", "text", 60)}${errorSlot}<div class="form-actions"><button class="btn">${edit ? "Lagre endringer" : "Legg til familiemedlem"}</button>${edit ? btn("Avbryt", "cancel-family") : ""}</div></form>`, "blue-card")}${card("Familien til " + html(d.dog.name), "heart", d.family.length ? `<ul class="list">${d.family.map((m) => `<li><div class="row"><div class="member"><span class="avatar" aria-hidden="true">${html(m.name.charAt(0).toUpperCase())}</span><div><strong>${html(m.name)}</strong><p class="muted">${html(m.role)}</p></div></div><div class="list-actions">${btn("Rediger", "edit-family", "secondary small", m.id)}${btn("Fjern", "delete-family", "secondary small", m.id)}</div></div></li>`).join("")}</ul>` : empty("Her er det plass til dem som er med på hundehverdagen.<br>Ingen familiemedlemmer lagt til ennå."))}</div>`;
+    $("family-form").onsubmit = (e) => {
+      e.preventDefault();
+      const name = clean($("member-name").value, 60),
+        role = clean($("member-role").value, 60);
+      if (!name || !role) {
+        $("form-error").textContent = "Fyll inn både navn og rolle.";
+        return;
+      }
+      if (edit) {
+        edit.name = name;
+        edit.role = role;
+      } else d.family.push({ id: uid(), name, role });
+      familyEdit = null;
+      save();
+      render();
+      notify("Familielisten er oppdatert.");
+    };
+  }
+  let modalReturn = null;
+  function modal(content) {
+    modalReturn = document.activeElement;
+    $("dialog-content").innerHTML = content;
+    $("dialog").showModal();
+  }
+  function closeModal() {
+    $("dialog").close();
+    if (modalReturn?.isConnected) modalReturn.focus();
+  }
+  function confirmRemove(title, desc, action, id) {
+    modal(
+      `<h2 id="dialog-title">${title}</h2><p>${desc}</p><div class="form-actions">${btn("Ja, slett", action, "danger", id)}${btn("Avbryt", "close")}</div>`,
+    );
+  }
+  function privacy() {
+    modal(
+      `<h2 id="dialog-title">Dine data, på din enhet</h2><p>Nika er en offentlig testdemo. Profil, registreringsfremdrift, turer, måltider og familie lagres bare i denne nettleseren. De deles ikke, og lagringen er ingen sikkerhetskopi.</p><p>Demoen har ingen generell AI-chat, GPS, brukerkonto, familiedeling, aktiv QR-ID eller butikk. Ingen analyse eller posisjon samles inn.</p><p>Eksport kan inneholde opplysningene du har skrevet inn. Oppbevar filen privat. Sletting gjelder bare Nika-data i denne nettleseren.</p>${d.legacyContact ? "<p>Kontaktfeltet fra den gamle demoen er bevart i lokal lagring og eksport. Det publiseres ikke.</p>" : ""}<div class="form-actions">${btn("Eksporter Nika-data", "export")}${btn("Slett Nika-data", "reset", "danger")}${btn("Lukk", "close")}</div>`,
+    );
+  }
+  function exportData() {
+    let data;
+    try {
+      data = {
+        format: "Nika lokal eksport",
+        exportedAt: new Date().toISOString(),
+        current: d,
+        stored: localStorage.getItem(KEY),
+        legacy: localStorage.getItem(LEGACY),
+      };
+    } catch {
+      data = { format: "Nika økteksport", current: d };
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      }),
+      url = URL.createObjectURL(blob),
+      a = document.createElement("a");
+    a.href = url;
+    a.download = "nika-data.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    notify("Eksporten er lastet ned.");
+  }
+  function correction() {
+    modal(
+      `<h2 id="dialog-title">Ser alt riktig ut?</h2><form id="correction-form">${field("Hundens navn", "draft-name", d.draft.name, "text", 60)}${field("Rase eller blandingshund", "draft-breed", d.draft.breed)}${field("Alder i år eller måneder", "draft-age", d.draft.age, "text", 50)}${errorSlot}<div class="form-actions"><button class="btn">Oppdater oppsummering</button>${btn("Avbryt", "close")}</div></form>`,
+    );
+    $("correction-form").onsubmit = (e) => {
+      e.preventDefault();
+      const name = clean($("draft-name").value, 60),
+        breed = clean($("draft-breed").value),
+        a = age($("draft-age").value);
+      if (!name || !breed || !a) {
+        $("form-error").textContent =
+          "Fyll inn navn, rase og en alder med år eller måneder.";
+        return;
+      }
+      d.draft = { name, breed, age: a };
+      save();
+      closeModal();
+      render();
+    };
+  }
+  function go(p) {
+    page = ["home", "walks", "meals", "family", "profile"].includes(p)
+      ? p
+      : "home";
+    mealEdit = null;
+    familyEdit = null;
+    render(true);
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.go) {
+      go(b.dataset.go);
+      return;
+    }
+    const a = b.dataset.action,
+      id = b.dataset.id;
+    if (!a) return;
+    // Ignore a physical double-click; subsequent intentional clicks remain available.
+    if (e.detail > 1) return;
+    if (a === "close") {
+      closeModal();
+      return;
+    }
+    if (a === "privacy") {
+      privacy();
+      return;
+    }
+    if (a === "export") {
+      exportData();
+      return;
+    }
+    if (a === "example") {
+      $("answer").value = "Luna, golden retriever, 3 år";
+      $("answer").focus();
+      return;
+    }
+    if (a === "correct") {
+      correction();
+      return;
+    }
+    if (
+      a === "confirm" &&
+      !d.dog &&
+      d.draft.name &&
+      d.draft.breed &&
+      age(d.draft.age)
+    ) {
+      d.dog = { ...d.draft, sex: "Ikke oppgitt" };
+      save();
+      go("home");
+      notify(`Velkommen til Nika, ${d.dog.name}!`);
+      return;
+    }
+    if (a === "reset") {
+      confirmRemove(
+        "Slette alle Nika-data?",
+        "Profil, turer, måltider, familie og registreringsfremdrift fjernes fra denne nettleseren. Det finnes ingen sikkerhetskopi med mindre du selv har eksportert. Annen nettleserlagring berøres ikke.",
+        "reset-confirm",
+      );
+      return;
+    }
+    if (a === "reset-confirm") {
+      try {
+        localStorage.removeItem(KEY);
+        localStorage.removeItem(LEGACY);
+        blocked = false;
+        storageAvailable = true;
+        storageIssue = "";
+      } catch {
+        storageIssue =
+          "Nettleseren tillater ikke sletting. Lagrede data kan fortsatt finnes. Tillat nettleserlagring og prøv igjen.";
+        showStorage();
+        closeModal();
+        return;
+      }
+      d = defaults();
+      page = "home";
+      closeModal();
+      render(true);
+      notify("Nika-data er slettet.");
+      return;
+    }
+    if (!d.dog) return;
+    if (["home", "profile", "walks", "meals", "family"].includes(a)) {
+      go(a);
+      return;
+    }
+    if (a === "startwalk") {
+      if (!d.active) {
+        d.active = { id: uid(), start: Date.now(), events: [] };
+        save();
+      }
+      go("walks");
+      return;
+    }
+    if ((a === "pee" || a === "poop") && d.active) {
+      if (Date.now() - (lastClick[a] || 0) < 500) return;
+      lastClick[a] = Date.now();
+      d.active.events.push({ id: uid(), type: a, at: Date.now() });
+      save();
+      render();
+      notify(
+        a === "pee"
+          ? "Tissing registrert. Du kan angre i listen."
+          : "Bæsjing registrert. Du kan angre i listen.",
+      );
+      return;
+    }
+    if (a === "undo-event" && d.active) {
+      d.active.events = d.active.events.filter((ev) => ev.id !== id);
+      save();
+      render();
+      notify("Hendelsen er angret.");
+      return;
+    }
+    if (a === "endwalk" && d.active) {
+      const end = Date.now();
+      d.walks.push({
+        ...d.active,
+        end,
+        durationMs: Math.max(0, end - d.active.start),
+      });
+      d.active = null;
+      save();
+      render();
+      notify("Turen er lagret.");
+      return;
+    }
+    if (a === "remove-place") {
+      confirmRemove(
+        "Fjerne favorittstedet?",
+        "Bare navnet på favorittstedet fjernes.",
+        "remove-place-confirm",
+        id,
+      );
+      return;
+    }
+    if (a === "remove-place-confirm") {
+      d.places = d.places.filter((p) => p.id !== id);
+      closeModal();
+      save();
+      render();
+      return;
+    }
+    if (a === "edit-meal") {
+      mealEdit = id;
+      render();
+      $("meal-food")?.focus();
+      return;
+    }
+    if (a === "cancel-meal") {
+      mealEdit = null;
+      render();
+      return;
+    }
+    if (a === "give") {
+      const m = d.meals.find((m) => m.id === id);
+      if (m && !mealToday(m)) {
+        d.feedings.push({
+          id: uid(),
+          mealId: m.id,
+          food: m.food,
+          day: dateKey(),
+          at: Date.now(),
+        });
+        save();
+        render();
+        notify("Måltidet er registrert som gitt nå.");
+      }
+      return;
+    }
+    if (a === "undo-feeding") {
+      d.feedings = d.feedings.filter((f) => f.id !== id);
+      save();
+      render();
+      notify("Måltidsregistreringen er angret.");
+      return;
+    }
+    if (a === "delete-meal") {
+      confirmRemove(
+        "Slette det planlagte måltidet?",
+        "Måltidet fjernes fra dagsplanen. Tidligere registreringer bevares i historikken.",
+        "delete-meal-confirm",
+        id,
+      );
+      return;
+    }
+    if (a === "delete-meal-confirm") {
+      d.meals = d.meals.filter((m) => m.id !== id);
+      mealEdit = null;
+      closeModal();
+      save();
+      render();
+      return;
+    }
+    if (a === "edit-family") {
+      familyEdit = id;
+      render();
+      $("member-name")?.focus();
+      return;
+    }
+    if (a === "cancel-family") {
+      familyEdit = null;
+      render();
+      return;
+    }
+    if (a === "delete-family") {
+      confirmRemove(
+        "Fjerne familiemedlemmet?",
+        "Personen fjernes bare fra listen på denne enheten. Det sendes ingen melding.",
+        "delete-family-confirm",
+        id,
+      );
+      return;
+    }
+    if (a === "delete-family-confirm") {
+      d.family = d.family.filter((m) => m.id !== id);
+      familyEdit = null;
+      closeModal();
+      save();
+      render();
+      return;
+    }
+  });
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest('a[href="#home"]');
+    if (a) {
+      e.preventDefault();
+      go("home");
+    }
+  });
+  $("dialog").addEventListener("click", (e) => {
+    if (e.target === $("dialog")) closeModal();
+  });
+  let today = dateKey();
+  setInterval(() => {
+    if (d.active)
+      document
+        .querySelectorAll("[data-timer]")
+        .forEach(
+          (el) => (el.textContent = duration(Date.now() - d.active.start)),
+        );
+    if (today !== dateKey()) {
+      today = dateKey();
+      if (d.dog && ["home", "meals"].includes(page) && !$("dialog").open)
+        render();
+    }
+  }, 1000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && today !== dateKey()) {
+      today = dateKey();
+      render();
+    }
+  });
+  window.addEventListener("storage", (e) => {
+    if (e.key === KEY || e.key === LEGACY) {
+      storageIssue =
+        "Nika-data er endret i en annen fane. Oppdater denne siden før du fortsetter, slik at endringer ikke overskrives.";
+      blocked = true;
+      showStorage();
+      document
+        .querySelectorAll("#content input,#content button,#content select")
+        .forEach((el) => (el.disabled = true));
+    }
+  });
+  render();
 })();
