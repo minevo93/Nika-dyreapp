@@ -1,7 +1,11 @@
 "use strict";
 (() => {
   const KEY = "nika-demo-v2",
-    LEGACY = "nika-mvp-v1";
+    LEGACY = "nika-mvp-v1",
+    PRE_MULTI = "nika-demo-v2-before-multi";
+  const SPECIES = ["Hund", "Katt", "Kanin", "Annet dyr"];
+  // Keep the active profile in the original v2 shape. otherPets contains only inactive profiles, never a second copy of the active one.
+  const PET_FIELDS = ["dog", "walks", "active", "meals", "feedings", "places"];
   const $ = (id) => document.getElementById(id),
     html = (s) =>
       String(s ?? "").replace(
@@ -42,17 +46,7 @@
     return s < 60 ? `${s} sek` : `${Math.floor(s / 60)} min ${s % 60} sek`;
   };
   function age(v) {
-    const m = clean(v)
-      .toLowerCase()
-      .match(
-        /^(\d+(?:[.,]\d+)?)\s*(år|år gammel|mnd\.?|måned(?:er)?)(?:\s+gammel)?$/,
-      );
-    if (!m) return null;
-    const n = Number(m[1].replace(",", ".")),
-      months = m[2].startsWith("år") ? n * 12 : n;
-    return months > 0 && months <= 360
-      ? `${n} ${m[2].startsWith("år") ? "år" : n === 1 ? "måned" : "måneder"}`
-      : null;
+    return window.NikaRegistration.normalizeAge(v);
   }
   const defaults = () => ({
     version: 2,
@@ -66,6 +60,11 @@
     places: [],
     legacyContact: "",
     revision: 0,
+    multiPetVersion: 1,
+    petId: uid(),
+    otherPets: [],
+    addingPet: false,
+    sessionEnded: false,
   });
   function validDog(d) {
     return (
@@ -73,10 +72,11 @@
       validText(d.name, 60) &&
       validText(d.breed, 100) &&
       validText(d.age, 50) &&
-      validText(d.sex, 30)
+      validText(d.sex, 30) &&
+      (d.species === undefined || SPECIES.includes(d.species))
     );
   }
-  function validate(d) {
+  function validateSingle(d) {
     if (
       !d ||
       d.version !== 2 ||
@@ -151,6 +151,42 @@
     )
       throw Error("Ugyldig favorittsted");
     return { ...defaults(), ...d };
+  }
+  function petSnapshot(source = d) {
+    return { id: source.petId, ...Object.fromEntries(PET_FIELDS.map(k => [k, source[k]])) };
+  }
+  function validate(input) {
+    const value = validateSingle(input);
+    if (input.multiPetVersion !== undefined && input.multiPetVersion !== 1) throw Error("Ukjent profilversjon");
+    if (!validText(value.petId,80) || !Array.isArray(value.otherPets) || value.otherPets.length>49 || typeof value.addingPet!=="boolean" || typeof value.sessionEnded!=="boolean") throw Error("Ugyldig profilliste");
+    const ids = new Set([value.petId]);
+    value.otherPets = value.otherPets.map(p => {
+      if (!p || !validText(p.id,80) || ids.has(p.id) || !validDog(p.dog)) throw Error("Ugyldig dyreprofil");
+      ids.add(p.id);
+      const checked = validateSingle({...defaults(),...Object.fromEntries(PET_FIELDS.map(k=>[k,p[k]]))});
+      return {id:p.id,...Object.fromEntries(PET_FIELDS.map(k=>[k,checked[k]])),dog:{...checked.dog,species:checked.dog.species || "Hund"}};
+    });
+    if (value.dog) value.dog = {...value.dog,species:value.dog.species || "Hund"};
+    if (value.draft.species !== undefined && !SPECIES.includes(value.draft.species)) throw Error("Ugyldig dyreart");
+    if (value.draft.sex !== undefined && !["Hann","Hunn","Ikke oppgitt"].includes(value.draft.sex)) throw Error("Ugyldig kjønn");
+    if (!input.multiPetVersion && value.dog) value.draft = defaults().draft;
+    return value;
+  }
+  function allPets() {
+    return [...(d.dog ? [petSnapshot()] : []),...d.otherPets];
+  }
+  function selectPet(id) {
+    if (id === d.petId) { d.addingPet=false; save(); closeModal(); go("home"); return; }
+    const target=d.otherPets.find(p=>p.id===id);
+    if (!target) return;
+    const previous=d.dog ? petSnapshot() : null;
+    d.otherPets=d.otherPets.filter(p=>p.id!==id);
+    if(previous)d.otherPets.push(previous);
+    for(const key of PET_FIELDS)d[key]=target[key];
+    d.petId=target.id;
+    d.addingPet=false;
+    lastClick={};
+    save(); closeModal(); go("home");
   }
   function migrate(v) {
     if (!v || typeof v !== "object" || Array.isArray(v))
@@ -230,13 +266,29 @@
     mealEdit = null,
     familyEdit = null,
     toastTimer,
-    lastClick = {};
+    lastClick = {},
+    upgradeBackupPending = "",
+    externalChanged = false;
   try {
     const raw = localStorage.getItem(KEY),
       old = localStorage.getItem(LEGACY);
-    if (raw) d = validate(JSON.parse(raw));
+    if (raw) {
+      const parsed=JSON.parse(raw);
+      d = validate(parsed);
+      if (!parsed.multiPetVersion) {
+        if (!d.dog && d.draft.name && (!d.draft.breed || age(d.draft.breed))) {
+          const repaired=window.NikaRegistration.parse(d.draft.name);
+          if (repaired.fields.name && repaired.fields.breed && repaired.fields.age) d.draft={...defaults().draft,...repaired.fields};
+        }
+        upgradeBackupPending=raw;
+        if (!localStorage.getItem(PRE_MULTI)) localStorage.setItem(PRE_MULTI,raw);
+        localStorage.setItem(KEY,JSON.stringify(d));
+        upgradeBackupPending="";
+        storageIssue="Nika støtter nå flere dyr. Den eksisterende profilen og historikken er bevart, og originalversjonen er beholdt lokalt.";
+      }
+    }
     else if (old) {
-      d = migrate(JSON.parse(old));
+      d = validate(migrate(JSON.parse(old)));
       localStorage.setItem(KEY, JSON.stringify(d));
       storageIssue =
         "Dataene dine er flyttet til den nye demoen. Originalen er bevart. Gamle «gitt»-markeringer manglet dato og er ikke overført; måltidsplanen er bevart.";
@@ -264,6 +316,10 @@
       return false;
     }
     try {
+      if (upgradeBackupPending) {
+        if (!localStorage.getItem(PRE_MULTI)) localStorage.setItem(PRE_MULTI,upgradeBackupPending);
+        upgradeBackupPending="";
+      }
       localStorage.setItem(KEY, JSON.stringify(d));
       if (!storageAvailable) {
         storageAvailable = true;
@@ -325,13 +381,13 @@
     );
   }
   function nav() {
-    const tabs = d.dog
+    const tabs = d.dog && !d.addingPet && !d.sessionEnded
       ? [
           ["home", "Oversikt"],
           ["walks", "Turer"],
           ["meals", "Måltider"],
           ["family", "Familie"],
-          ["profile", "Min hund"],
+          ["profile", d.dog.species === "Hund" ? "Min hund" : "Mitt dyr"],
         ]
       : [];
     $("nav").innerHTML = tabs
@@ -340,73 +396,70 @@
           `<button data-go="${p}"${p === page ? ' aria-current="page"' : ""}>${n}</button>`,
       )
       .join("");
+    const tools=$("pet-controls");
+    tools.hidden=!d.dog || d.sessionEnded;
+    if (!tools.hidden) {
+      const running=allPets().filter(p=>p.active).length;
+      tools.innerHTML=d.addingPet
+        ? `<span>Registrer et nytt dyr – eksisterende profiler er bevart.</span>${btn("Tilbake til "+html(d.dog.name),"cancel-pet")}${btn("Logg ut","logout")}`
+        : `<label class="pet-picker">Valgt dyr<select id="pet-select" aria-label="Velg dyr">${allPets().map(p=>`<option value="${html(p.id)}"${p.id===d.petId?" selected":""}>${html(p.dog.name)} · ${html(p.dog.species || "Hund")}${p.active?" · på tur":""}</option>`).join("")}</select></label><div class="pet-actions">${running?btn(`${running} tur${running>1?"er":""} pågår`,"pets"):""}${btn("Mine dyr", "pets")}${btn("Logg ut","logout")}</div>`;
+      $("pet-select")?.addEventListener("change",e=>selectPet(e.target.value));
+    } else tools.innerHTML="";
+  }
+  function petManager() {
+    modal(`<h2 id="dialog-title">Mine dyr</h2><p class="muted">Profiler og historikk lagres bare i denne nettleseren. Familien er felles; turer, måltider og favorittsteder tilhører hvert dyr.</p><div class="pet-list">${allPets().map(p=>`<div class="pet-list-row"><div><strong>${html(p.dog.name)}</strong><span>${html(p.dog.species || "Hund")} · ${html(p.dog.age)}${p.active?" · en tur pågår":""}</span></div>${p.id===d.petId?'<button class="btn secondary" disabled>Valgt</button>':btn("Velg "+html(p.dog.name),"choose-pet","secondary",p.id)}</div>`).join("")}</div><div class="form-actions">${allPets().length<50?btn(d.draft.name?"Fortsett ny registrering":"Legg til dyr","add-pet",""):"<p>Demoen støtter inntil 50 dyr.</p>"}${btn("Lukk","close")}</div>`);
+  }
+  function sessionScreen() {
+    $("content").innerHTML=`<section class="session-screen card"><img src="assets/paw.svg" alt="" width="52" height="52"><h1>Du er logget ut</h1><p>Den lokale økten er avsluttet. De ${allPets().length} dyreprofilene og historikken er fortsatt lagret i denne nettleseren.</p>${allPets().some(p=>p.active)?'<p class="notice">En tur pågår fortsatt. Tiden fortsetter å løpe til du åpner profilen og avslutter turen.</p>':""}${btn("Åpne mine dyr","resume","")}<p class="session-explainer">Dette er en lokal demo uten konto eller passord. Utlogging skjuler oversikten, men beskytter ikke dataene mot andre som bruker denne nettleseren. «Åpne mine dyr» krever ingen innlogging.</p></section>`;
   }
   function render(focus = false) {
     nav();
     showStorage();
-    if (!d.dog) onboarding();
+    if (d.sessionEnded) sessionScreen();
+    else if (!d.dog || d.addingPet) onboarding();
     else dashboardPage();
     if (focus) $("content").focus({ preventScroll: true });
   }
   function onboarding() {
     const step = !d.draft.name ? 0 : !d.draft.breed ? 1 : !d.draft.age ? 2 : 3;
     const questions = [
-      "Hei, så hyggelig å se deg! Jeg hjelper deg å samle hundens hverdag. Hva heter hunden din?",
-      "Et fint navn! Hvilken rase er hunden? Blandingshund og ukjent rase går også helt fint.",
-      "Hvor gammel er hunden? Skriv alder i år eller måneder, for eksempel «3 år» eller «8 måneder».",
+      "Hei, så hyggelig å se deg! Hva heter dyret ditt? Du kan også skrive navn, rase og alder i én setning.",
+      "Hvilken rase er dyret? Blandingshund, ukjent rase eller ikke oppgitt går helt fint.",
+      "Hvor gammelt er dyret? Skriv alder i år eller måneder, for eksempel «3 år» eller «8 måneder».",
     ];
     let msgs = `<div class="bubble">${questions[0]}</div>`;
-    if (d.draft.name)
-      msgs += `<div class="bubble mine">${html(d.draft.name)}</div><div class="bubble">${questions[1]}</div>`;
-    if (d.draft.breed)
-      msgs += `<div class="bubble mine">${html(d.draft.breed)}</div><div class="bubble">${questions[2]}</div>`;
-    if (d.draft.age)
-      msgs += `<div class="bubble mine">${html(d.draft.age)}</div><div class="bubble">Da har jeg det jeg trenger. Ser dette riktig ut?</div>`;
+    for (const [key,label] of [["name","Navn"],["breed","Rase"],["age","Alder"]]) {
+      if (d.draft[key]) msgs += `<div class="bubble mine">${label}: ${html(d.draft[key])}</div>`;
+    }
+    if (step>0 || d.draft.age || d.draft.species) msgs += `<div class="bubble">${step<3?questions[step]:"Her er det jeg har tolket. Kontroller og korriger opplysningene før du lagrer."}</div>`;
     $("content").innerHTML =
-      `<section class="welcome-top"><span class="eyebrow">DIN HUND. DIN FAMILIE. DERES HVERDAG.</span><h1>Et bedre liv <em>sammen</em></h1><p>Litt mer oversikt. Litt mindre å huske på. <span class="welcome-second-line">Og mer tid til det som betyr noe.</span></p></section><div class="onboard-scene"><aside class="dog-scene" aria-label="Møt Nika og Tyra"><img src="assets/nika-dog-duo-v3.webp" alt="Bestevenninnene Tyra med hvit pels og Nika med svart og lysebrun pels" width="620" height="680"><div class="floating-note note-one">${icon("heart")}<span><b>En del av familien</b>Hver eneste dag.</span></div><div class="floating-note note-two">${icon("leaf")}<span><b>Små turer. Store øyeblikk.</b>En enklere hverdag sammen.</span></div><p class="duo-story"><strong>Møt Nika og Tyra</strong><span>To firbente bestevenninner.<br>Inspirasjonen bak Nika.</span></p></aside><section class="chat" aria-label="Registrer hunden din"><div class="chat-head"><div class="chat-id"><img src="assets/paw.svg" alt="" width="38" height="38"><div><strong>Hei, jeg er Nika</strong><span>La oss bli litt kjent</span></div></div><span class="chat-step">${step === 3 ? "Klar til å bekrefte" : `Steg ${step + 1} av 3`}</span></div><div class="messages" id="messages" role="log" aria-label="Registreringssamtale">${msgs}</div>${step < 3 ? `<form id="onboard-form" class="chat-form"><input id="answer" name="answer" aria-label="Svar til Nika" placeholder="${["Hundens navn …", "Rase eller blandingshund …", "For eksempel 3 år …"][step]}" maxlength="200" required autocomplete="off"><button class="send" aria-label="Send svar">↑</button></form><p class="error chat-help" id="onboard-error" role="alert"></p>${step === 0 ? '<button class="quick-example" data-action="example">Du kan også skrive: «Luna, golden retriever, 3 år»</button>' : ""}` : `<div class="onboard-summary"><h3>En liten oppsummering</h3><dl class="details"><div><dt>Navn</dt><dd>${html(d.draft.name)}</dd></div><div><dt>Rase</dt><dd>${html(d.draft.breed)}</dd></div><div><dt>Alder</dt><dd>${html(d.draft.age)}</dd></div></dl><div class="form-actions">${btn("Ja, opprett profilen", "confirm", "")}${btn("Korriger", "correct")}</div></div>`}<p class="chat-help">En veiviser for registrering, ikke AI-rådgivning.<br>Opplysningene lagres bare i denne nettleseren.</p></section></div><div class="trust-row"><span>${icon("shield")}Privat og lokalt</span><span>${icon("paw")}Laget for hundehverdagen</span><span>${icon("heart")}Plass til hele familien</span></div>`;
+      `<section class="welcome-top"><span class="eyebrow">DIN HUND. DIN FAMILIE. DERES HVERDAG.</span><h1>Et bedre liv <em>sammen</em></h1><p>Litt mer oversikt. Litt mindre å huske på. <span class="welcome-second-line">Og mer tid til det som betyr noe.</span></p></section><div class="onboard-scene"><aside class="dog-scene" aria-label="Møt Nika og Tyra"><img src="assets/nika-dog-duo-v3.webp" alt="Bestevenninnene Tyra med hvit pels og Nika med svart og lysebrun pels" width="620" height="680"><div class="floating-note note-one">${icon("heart")}<span><b>En del av familien</b>Hver eneste dag.</span></div><div class="floating-note note-two">${icon("leaf")}<span><b>Små turer. Store øyeblikk.</b>En enklere hverdag sammen.</span></div><p class="duo-story"><strong>Møt Nika og Tyra</strong><span>To firbente bestevenninner.<br>Inspirasjonen bak Nika.</span></p></aside><section class="chat" aria-label="Registrer dyret ditt"><div class="chat-head"><div class="chat-id"><img src="assets/paw.svg" alt="" width="38" height="38"><div><strong>Hei, jeg er Nika</strong><span>La oss bli litt kjent</span></div></div><span class="chat-step">${step === 3 ? "Klar til å bekrefte" : `Steg ${step + 1} av 3`}</span></div><div class="messages" id="messages" role="log" aria-label="Registreringssamtale">${msgs}</div>${step < 3 ? `<form id="onboard-form" class="chat-form"><input id="answer" name="answer" aria-label="Svar til Nika" placeholder="${["Dyrets navn …", "Rase eller blandingshund …", "For eksempel 3 år …"][step]}" maxlength="300" required autocomplete="off"><button class="send" aria-label="Send svar">↑</button></form><p class="error chat-help" id="onboard-error" role="alert"></p>${step === 0 ? '<button class="quick-example" data-action="example">Prøv: «Jessica schæfer tispe 2 år» – uten komma</button>' : ""}` : `<div class="onboard-summary"><h3>En liten oppsummering</h3><dl class="details"><div><dt>Navn</dt><dd>${html(d.draft.name)}</dd></div><div><dt>Rase</dt><dd>${html(d.draft.breed)}</dd></div><div><dt>Alder</dt><dd>${html(d.draft.age)}</dd></div><div><dt>Art</dt><dd>${html(d.draft.species || "Hund")}</dd></div><div><dt>Kjønn</dt><dd>${html(d.draft.sex || "Ikke oppgitt")}</dd></div></dl><div class="form-actions">${btn("Ja, opprett profilen", "confirm", "")}${btn("Korriger", "correct")}</div></div>`}<p class="chat-help">En veiviser for registrering, ikke AI-rådgivning.<br>Opplysningene lagres bare i denne nettleseren.</p></section></div><div class="trust-row"><span>${icon("shield")}Privat og lokalt</span><span>${icon("paw")}Laget for hundehverdagen</span><span>${icon("heart")}Plass til hele familien</span></div>`;
     const msgsEl = $("messages");
     msgsEl.scrollTop = msgsEl.scrollHeight;
     const form = $("onboard-form");
-    if (form)
-      form.onsubmit = (e) => {
-        e.preventDefault();
-        const v = $("answer").value.trim();
-        let err = "";
-        if (!v) err = "Skriv et svar først.";
-        else if (step === 0) {
-          const combined = v.split(",").map((s) => s.trim());
-          if (combined.length === 3) {
-            const a = age(combined[2]);
-            if (
-              !validText(combined[0], 60) ||
-              !validText(combined[1], 100) ||
-              !a
-            )
-              err =
-                "Bruk navn, rase og alder med enhet, for eksempel «Luna, ukjent rase, 8 måneder».";
-            else d.draft = { name: combined[0], breed: combined[1], age: a };
-          } else if (!validText(v, 60)) err = "Navnet kan ha inntil 60 tegn.";
-          else d.draft.name = v;
-        } else if (step === 1) {
-          if (!validText(v, 100))
-            err =
-              "Skriv en rase, blandingshund eller ukjent rase (inntil 100 tegn).";
-          else d.draft.breed = v;
-        } else {
-          const a = age(v);
-          if (!a)
-            err =
-              "Skriv en alder over 0 og inntil 30 år, med år eller måneder.";
-          else d.draft.age = a;
+    if (form) form.onsubmit = (e) => {
+      e.preventDefault();
+      const v=$("answer").value.trim();
+      const field=["name","breed","age"][step];
+      const parsed=window.NikaRegistration.parse(v,{field});
+      let err=parsed.error || "";
+      const next={...d.draft};
+      if(!v) err="Skriv et svar først.";
+      if(!err && parsed.structured) {
+        for(const [key,value] of Object.entries(parsed.fields)) {
+          if(["name","breed","age","sex","species"].includes(key))next[key]=value;
         }
-        if (err) {
-          $("onboard-error").textContent = err;
-          return;
-        }
-        save();
-        onboarding();
-        $("answer")?.focus();
-      };
+        if(!Object.keys(parsed.fields).length)err="Jeg fant ikke opplysningene. Svar gjerne på ett spørsmål om gangen.";
+      } else if(!err) {
+        if(field==="age") { const a=age(v); if(a)next.age=a; else err="Skriv en gyldig alder med år eller måneder."; }
+        else if(validText(v,field==="name"?60:100))next[field]=v;
+        else err="Svaret er for langt. Bruk inntil "+(field==="name"?60:100)+" tegn.";
+      }
+      if(!err && ((next.name && !validText(next.name,60)) || (next.breed && !validText(next.breed,100))))err="Bruk inntil 60 tegn i navn og 100 tegn i rase.";
+      if(err) { $("onboard-error").textContent=err; return; }
+      d.draft=next;
+      save(); onboarding(); $("answer")?.focus();
+    };
   }
   function dashboardPage() {
     if (page === "home") {
@@ -414,7 +467,7 @@
       return;
     }
     const titles = {
-      profile: ["Min hund", "En liten profil. En stor personlighet."],
+      profile: [d.dog.species === "Hund" ? "Min hund" : "Mitt dyr", "En liten profil. En stor personlighet."],
       walks: ["Ut på tur", "Frisk luft og små øyeblikk, samlet på ett sted."],
       meals: [
         "Tid for mat",
@@ -434,22 +487,28 @@
     if (page === "family") family();
   }
   function home() {
-    const dog = d.dog,
-      last = d.walks.at(-1),
-      m = nextMeal();
-    $("content").innerHTML =
-      `<div class="welcome-banner"><div><span class="date">${new Date().toLocaleDateString("nb-NO", { weekday: "long", day: "numeric", month: "long" })}</span><h1>Hei, ${html(dog.name)} <span aria-hidden="true">♡</span></h1><p>En god hverdag begynner med de små tingene.<br>Her har du oversikten deres.</p>${btn(`${icon("walk")}${d.active ? "Fortsett turen" : "Start luftetur"}`, d.active ? "walks" : "startwalk", "")}</div><img class="banner-dog" src="assets/nika-dog-duo-v3.webp" alt="" width="620" height="680"></div><div class="dashboard-grid">
- <section class="card profile-card"><div class="card-top"><h3>${icon("paw")}Min beste venn</h3><span class="badge">Din hund</span></div><img class="profile-art" src="assets/nika-dog-reference-v2.webp" alt="Nika-maskoten, en svart og lysebrun hund" width="155" height="155"><h2>${html(dog.name)}</h2><p class="muted">Et helt spesielt familiemedlem.</p><dl class="details"><div><dt>Rase</dt><dd>${html(dog.breed)}</dd></div><div><dt>Alder ved registrering</dt><dd>${html(dog.age)}</dd></div><div><dt>Kjønn</dt><dd>${html(dog.sex)}</dd></div></dl>${btn("Se og rediger profil", "profile")}</section>
- ${card(d.active ? "På tur nå" : "Siste luftetur", "walk", d.active ? `<div class="metric" data-timer>${duration(Date.now() - d.active.start)}</div><p class="subline">${count(d.active, "pee")} tissing · ${count(d.active, "poop")} bæsjing</p>${btn("Åpne aktiv tur", "walks")}` : last ? `<div class="metric">${duration(last.durationMs)}</div><p class="subline">${dateTime(last.start)}<br>${count(last, "pee")} tissing · ${count(last, "poop")} bæsjing</p>${btn("Se turhistorikk", "walks")}` : empty("Den første turen venter.<br>Ta med Nika neste gang dere går ut.") + btn("Start den første turen", "startwalk"))}
- ${card("Neste måltid", "bowl", m ? `<div class="metric">${html(m.time)}</div><p class="subline">${html(m.food)} · ikke gitt i dag</p>${btn("Åpne måltider", "meals")}` : empty(d.meals.length ? "Alle planlagte måltider er gitt i dag. En ny plan venter i morgen." : "Ingen måltider planlagt ennå.<br>Legg inn tidene som passer dere.") + btn("Planlegg et måltid", "meals"), "beige-card")}
- ${card("Familien vår", "family", d.family.length ? `<div class="metric">${d.family.length} <small>${d.family.length === 1 ? "familiemedlem" : "familiemedlemmer"}</small></div><p class="subline">Kun en lokal oversikt på denne enheten.</p>${btn("Se familien", "family")}` : empty("Hvem deler hundehverdagen?<br>Legg til familien i den lokale oversikten.") + btn("Legg til familie", "family"), "blue-card")}
- ${card("Favorittstedene deres", "pin", d.places.length ? `<p class="subline">${d.places.map((p) => html(p.name)).join(" · ")}</p>${btn("Se favorittsteder", "walks")}` : empty("Et skogholt eller en fast liten runde?<br>Dere velger selv favorittene.") + btn("Legg til et sted", "walks"))}
- </div><div class="shortcuts">${btn("Alle turer", "walks")}${btn("Måltidsplan", "meals")}${btn("Om denne demoen", "privacy")}</div>`;
+    const dog=d.dog,last=d.walks.at(-1),m=nextMeal();
+    const row=(title,ico,body,action,label,extra="")=>
+      `<section class="routine-row ${extra}">${icon(ico)}<div class="routine-copy"><h3>${title}</h3><p>${body}</p></div><button class="routine-action" data-action="${action}" aria-label="${html(label)}" title="${html(label)}">${icon("arrow")}</button></section>`;
+    const walkBody=d.active
+      ? `<strong data-timer>${duration(Date.now()-d.active.start)}</strong> · ${count(d.active,"pee")} tissing · ${count(d.active,"poop")} bæsjing`
+      : last ? `<strong>${duration(last.durationMs)}</strong> · ${dateTime(last.start)}` : "Ingen turer registrert ennå. Start når dere er klare.";
+    const mealBody=m ? `<strong>${html(m.time)}</strong> · ${html(m.food)} · ikke gitt i dag`
+      : d.meals.length ? "Alle planlagte måltider er gitt i dag." : "Ingen måltider planlagt ennå.";
+    $("content").innerHTML=
+      `<div class="welcome-banner"><div><span class="date">${new Date().toLocaleDateString("nb-NO",{weekday:"long",day:"numeric",month:"long"})}</span><h1>Hei, ${html(dog.name)} <span aria-hidden="true">♡</span></h1><p>Små øyeblikk. En enklere hverdag.<br>Her er oversikten for ${html(dog.name)}.</p>${btn(`${icon("walk")}${d.active?"Fortsett turen":"Start luftetur"}`,d.active?"walks":"startwalk","")}</div><img class="banner-dog" src="assets/nika-dog-duo-v3.webp" alt="" width="620" height="680"></div>
+      <div class="dashboard-grid compact-dashboard"><section class="card profile-card"><div class="card-top"><h3>${icon("paw")}Min beste venn</h3><span class="badge">${html(dog.species || "Hund")}</span></div><img class="profile-art" src="assets/nika-dog-reference-v2.webp" alt="Nika-maskoten, en svart og lysebrun hund" width="155" height="155"><h2>${html(dog.name)}</h2><p class="muted">Et helt spesielt familiemedlem.</p><dl class="details"><div><dt>Art</dt><dd>${html(dog.species || "Hund")}</dd></div><div><dt>Rase</dt><dd>${html(dog.breed)}</dd></div><div><dt>Alder ved registrering</dt><dd>${html(dog.age)}</dd></div><div><dt>Kjønn</dt><dd>${html(dog.sex)}</dd></div></dl>${btn("Se og rediger profil","profile")}</section>
+      <section class="card routine-card" aria-label="Samlet hverdagsoversikt"><div class="routine-heading"><div><span class="eyebrow">DET VIKTIGSTE, SAMLET</span><h2>Hverdagen deres</h2></div><span class="badge">For ${html(dog.name)}</span></div>
+      ${row(d.active?"På tur nå":"Siste luftetur","walk",walkBody,d.active||last?"walks":"startwalk",d.active?"Åpne aktiv tur":last?"Se turhistorikk":"Start den første turen")}
+      ${row("Neste måltid","bowl",mealBody,"meals",m?"Åpne måltider":"Planlegg et måltid","meal-row")}
+      ${row("Familien vår","family",d.family.length?`${d.family.length} familiemedlem${d.family.length>1?"mer":""} · felles for alle dyrene`:"Ingen familiemedlemmer lagt til ennå.","family",d.family.length?"Se familien":"Legg til familie","family-row")}
+      ${row("Favorittstedene deres","pin",d.places.length?d.places.slice(0,3).map(p=>html(p.name)).join(" · ")+(d.places.length>3?" · flere":""):"Ingen favorittsteder ennå. Dere velger selv.","walks",d.places.length?"Se favorittsteder":"Legg til et sted")}
+      <p class="routine-footnote">Turer, måltider og favoritter gjelder ${html(dog.name)}. Familien er felles.</p></section></div>`;
   }
   function profile() {
     const x = d.dog;
     $("page-body").innerHTML =
-      `<div class="two-cols">${card("Profilen til " + html(x.name), "paw", `<form id="profile-form">${field("Hundens navn", "dog-name", x.name, "text", 60)}${field("Rase, blandingshund eller ukjent rase", "dog-breed", x.breed)}${field("Alder ved registrering (år eller måneder)", "dog-age", x.age, "text", 50)}<label class="field">Kjønn<select name="dog-sex" id="dog-sex">${["Ikke oppgitt", "Hann", "Hunn"].map((s) => `<option${x.sex === s ? " selected" : ""}>${s}</option>`).join("")}</select></label>${errorSlot}<button class="btn">Lagre profil</button></form>`)}<div class="stack">${card("Deres lille hverdagsbok", "heart", '<p class="muted">Profilen hjelper deg å samle turer, måltider og familie. Alderen er den du oppga ved registrering, og oppdateres manuelt.</p>')}<div class="notice">Nika er en lokal demo. Dataene deles ikke og er ingen sikkerhetskopi. Vi gir ikke individuelle helse- eller kostråd.</div></div></div>`;
+      `<div class="two-cols">${card("Profilen til " + html(x.name), "paw", `<form id="profile-form">${field(x.species==="Hund"?"Hundens navn":"Dyrets navn", "dog-name", x.name, "text", 60)}<label class="field">Art<select id="dog-species">${SPECIES.map(s=>`<option${s===(x.species || "Hund")?" selected":""}>${s}</option>`).join("")}</select></label>${field("Rase, blandingshund eller ukjent rase", "dog-breed", x.breed)}${field("Alder ved registrering (år eller måneder)", "dog-age", x.age, "text", 50)}<label class="field">Kjønn<select name="dog-sex" id="dog-sex">${["Ikke oppgitt", "Hann", "Hunn"].map((s) => `<option${x.sex === s ? " selected" : ""}>${s}</option>`).join("")}</select></label>${errorSlot}<button class="btn">Lagre profil</button></form>`)}<div class="stack">${card("Deres lille hverdagsbok", "heart", '<p class="muted">Profilen hjelper deg å samle turer, måltider og familie. Alderen er den du oppga ved registrering, og oppdateres manuelt.</p>')}<div class="notice">Nika er en lokal demo. Dataene deles ikke og er ingen sikkerhetskopi. Vi gir ikke individuelle helse- eller kostråd.</div></div></div>`;
     $("profile-form").onsubmit = (e) => {
       e.preventDefault();
       const name = clean($("dog-name").value, 60),
@@ -460,7 +519,7 @@
           "Fyll inn navn, rase og en gyldig alder med år eller måneder.";
         return;
       }
-      d.dog = { name, breed, age: a, sex: $("dog-sex").value };
+      d.dog = { name, breed, age: a, sex: $("dog-sex").value, species: $("dog-species").value };
       save();
       render();
       notify("Profilen er oppdatert.");
@@ -605,7 +664,7 @@
   }
   function privacy() {
     modal(
-      `<h2 id="dialog-title">Dine data, på din enhet</h2><p>Nika er en offentlig testdemo. Profil, registreringsfremdrift, turer, måltider og familie lagres bare i denne nettleseren. De deles ikke, og lagringen er ingen sikkerhetskopi.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen. Du møter dem som illustrasjoner i Nika. De er appens ansikter, ikke profilbilder av hunden du registrerer.</p><p>Demoen har ingen generell AI-chat, GPS, brukerkonto, familiedeling, aktiv QR-ID eller butikk. Ingen analyse eller posisjon samles inn.</p><p>Eksport kan inneholde opplysningene du har skrevet inn. Oppbevar filen privat. Sletting gjelder bare Nika-data i denne nettleseren.</p>${d.legacyContact ? "<p>Kontaktfeltet fra den gamle demoen er bevart i lokal lagring og eksport. Det publiseres ikke.</p>" : ""}<div class="form-actions">${btn("Eksporter Nika-data", "export")}${btn("Slett Nika-data", "reset", "danger")}${btn("Lukk", "close")}</div>`,
+      `<h2 id="dialog-title">Dine data, på din enhet</h2><p>Nika er en offentlig testdemo. Dyreprofiler, registreringsfremdrift, turer, måltider og familie lagres bare i denne nettleseren. De deles ikke, og lagringen er ingen sikkerhetskopi.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen. Du møter dem som illustrasjoner i Nika. De er appens ansikter, ikke profilbilder av hunden du registrerer.</p><p>Demoen har ingen generell AI-chat, GPS, brukerkonto, familiedeling, aktiv QR-ID eller butikk. Ingen analyse eller posisjon samles inn.</p><p>Du kan ha flere lokale dyreprofiler. Turer, måltider og favorittsteder holdes adskilt; familien er felles. «Logg ut» avslutter bare den lokale økten og er ingen passordbeskyttelse.</p><p>Eksport kan inneholde opplysningene du har skrevet inn. Oppbevar filen privat. Sletting gjelder bare Nika-data i denne nettleseren.</p>${d.legacyContact ? "<p>Kontaktfeltet fra den gamle demoen er bevart i lokal lagring og eksport. Det publiseres ikke.</p>" : ""}<div class="form-actions">${btn("Eksporter Nika-data", "export")}${btn("Slett Nika-data", "reset", "danger")}${btn("Lukk", "close")}</div>`,
     );
   }
   function exportData() {
@@ -617,6 +676,7 @@
         current: d,
         stored: localStorage.getItem(KEY),
         legacy: localStorage.getItem(LEGACY),
+        beforeMultiPet: localStorage.getItem(PRE_MULTI),
       };
     } catch {
       data = { format: "Nika økteksport", current: d };
@@ -634,7 +694,7 @@
   }
   function correction() {
     modal(
-      `<h2 id="dialog-title">Ser alt riktig ut?</h2><form id="correction-form">${field("Hundens navn", "draft-name", d.draft.name, "text", 60)}${field("Rase eller blandingshund", "draft-breed", d.draft.breed)}${field("Alder i år eller måneder", "draft-age", d.draft.age, "text", 50)}${errorSlot}<div class="form-actions"><button class="btn">Oppdater oppsummering</button>${btn("Avbryt", "close")}</div></form>`,
+      `<h2 id="dialog-title">Ser alt riktig ut?</h2><form id="correction-form">${field("Dyrets navn", "draft-name", d.draft.name, "text", 60)}<label class="field">Art<select id="draft-species">${SPECIES.map(s=>`<option${s===(d.draft.species || "Hund")?" selected":""}>${s}</option>`).join("")}</select></label><label class="field">Kjønn<select id="draft-sex">${["Ikke oppgitt","Hann","Hunn"].map(s=>`<option${s===(d.draft.sex || "Ikke oppgitt")?" selected":""}>${s}</option>`).join("")}</select></label>${field("Rase eller blandingshund", "draft-breed", d.draft.breed)}${field("Alder i år eller måneder", "draft-age", d.draft.age, "text", 50)}${errorSlot}<div class="form-actions"><button class="btn">Oppdater oppsummering</button>${btn("Avbryt", "close")}</div></form>`,
     );
     $("correction-form").onsubmit = (e) => {
       e.preventDefault();
@@ -646,13 +706,14 @@
           "Fyll inn navn, rase og en alder med år eller måneder.";
         return;
       }
-      d.draft = { name, breed, age: a };
+      d.draft = { name, breed, age: a, sex: $("draft-sex").value, species: $("draft-species").value };
       save();
       closeModal();
       render();
     };
   }
   function go(p) {
+    if (d.addingPet) { d.addingPet=false; save(); }
     page = ["home", "walks", "meals", "family", "profile"].includes(p)
       ? p
       : "home";
@@ -663,6 +724,10 @@
   document.addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b) return;
+    if (externalChanged && !["close","privacy","export","reset","reset-confirm"].includes(b.dataset.action)) {
+      notify("Oppdater siden før du fortsetter. Dataene er endret i en annen fane.");
+      return;
+    }
     if (b.dataset.go) {
       go(b.dataset.go);
       return;
@@ -684,8 +749,37 @@
       exportData();
       return;
     }
+    if (a === "resume") {
+      d.sessionEnded=false;
+      save(); go("home");
+      return;
+    }
+    if (d.sessionEnded && !["reset","reset-confirm"].includes(a)) return;
+    if (a === "logout" && d.dog) {
+      modal(`<h2 id="dialog-title">Avslutte den lokale økten?</h2><p>Dyreprofiler og historikk beholdes på denne enheten. ${allPets().some(p=>p.active)?"En tur pågår; tiden fortsetter til du åpner riktig profil og avslutter den.":""}</p><p class="notice">Demoen har ingen konto eller passord. Utlogging skjuler oversikten, men er ikke en sikker tilgangssperre. Andre som bruker denne nettleseren kan åpne profilene igjen.</p><div class="form-actions">${btn("Logg ut","logout-confirm","")}${btn("Avbryt","close")}</div>`);
+      return;
+    }
+    if (a === "logout-confirm" && d.dog) {
+      d.sessionEnded=true;
+      save(); closeModal(); render(true);
+      return;
+    }
+    if (a === "pets" && d.dog) { petManager(); return; }
+    if (a === "choose-pet") { selectPet(id); return; }
+    if (a === "add-pet" && d.dog) {
+      if(allPets().length>=50) {notify("Demoen støtter inntil 50 dyreprofiler.");return;}
+      d.addingPet=true;
+      save(); closeModal(); render(true);
+      return;
+    }
+    if (a === "cancel-pet" && d.dog) {
+      d.addingPet=false;
+      save(); render(true);
+      notify("Utkastet er beholdt. Du kan fortsette under Mine dyr.");
+      return;
+    }
     if (a === "example") {
-      $("answer").value = "Luna, golden retriever, 3 år";
+      $("answer").value = "Jessica schæfer tispe 2 år";
       $("answer").focus();
       return;
     }
@@ -695,12 +789,20 @@
     }
     if (
       a === "confirm" &&
-      !d.dog &&
+      (!d.dog || d.addingPet) &&
       d.draft.name &&
       d.draft.breed &&
       age(d.draft.age)
     ) {
-      d.dog = { ...d.draft, sex: "Ikke oppgitt" };
+      if(d.dog) {
+        d.otherPets.push(petSnapshot());
+        const blank=defaults();
+        for(const key of PET_FIELDS)d[key]=blank[key];
+        d.petId=uid();
+      }
+      d.dog = { name:d.draft.name,breed:d.draft.breed,age:age(d.draft.age),sex:d.draft.sex || "Ikke oppgitt",species:d.draft.species || "Hund" };
+      d.draft=defaults().draft;
+      d.addingPet=false;
       save();
       go("home");
       notify(`Velkommen til Nika, ${d.dog.name}!`);
@@ -709,7 +811,7 @@
     if (a === "reset") {
       confirmRemove(
         "Slette alle Nika-data?",
-        "Profil, turer, måltider, familie og registreringsfremdrift fjernes fra denne nettleseren. Det finnes ingen sikkerhetskopi med mindre du selv har eksportert. Annen nettleserlagring berøres ikke.",
+        "Alle dyreprofiler, turer, måltider, familie, utkast og eldre Nika-versjoner fjernes fra denne nettleseren. Eksporter først hvis du vil beholde dem. Annen nettleserlagring berøres ikke.",
         "reset-confirm",
       );
       return;
@@ -718,9 +820,12 @@
       try {
         localStorage.removeItem(KEY);
         localStorage.removeItem(LEGACY);
+        localStorage.removeItem(PRE_MULTI);
         blocked = false;
         storageAvailable = true;
         storageIssue = "";
+        upgradeBackupPending="";
+        externalChanged=false;
       } catch {
         storageIssue =
           "Nettleseren tillater ikke sletting. Lagrede data kan fortsatt finnes. Tillat nettleserlagring og prøv igjen.";
@@ -897,24 +1002,25 @@
         );
     if (today !== dateKey()) {
       today = dateKey();
-      if (d.dog && ["home", "meals"].includes(page) && !$("dialog").open)
+      if (d.dog && !d.addingPet && !d.sessionEnded && ["home", "meals"].includes(page) && !$("dialog").open)
         render();
     }
   }, 1000);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden && today !== dateKey()) {
       today = dateKey();
-      render();
+      if (!d.addingPet) render();
     }
   });
   window.addEventListener("storage", (e) => {
-    if (e.key === KEY || e.key === LEGACY) {
+    if (e.key === KEY || e.key === LEGACY || e.key === PRE_MULTI || e.key === null) {
       storageIssue =
         "Nika-data er endret i en annen fane. Oppdater denne siden før du fortsetter, slik at endringer ikke overskrives.";
       blocked = true;
+      externalChanged=true;
       showStorage();
       document
-        .querySelectorAll("#content input,#content button,#content select")
+        .querySelectorAll("#content input,#content button,#content select,#pet-controls button,#pet-controls select,#nav button")
         .forEach((el) => (el.disabled = true));
     }
   });

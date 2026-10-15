@@ -19,6 +19,7 @@
   background: var(--cream);
   font-synthesis: none;
 }
+
 * {
   box-sizing: border-box;
 }
@@ -1248,4 +1249,61 @@ footer p {
   .quick-example {
     margin: 0 12px 12px;
   }
+}
+
+/* Local multi-pet controls and a single compact everyday overview. */
+.pet-controls[hidden] { display: none; }
+.pet-controls {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 40px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+}
+.pet-picker { display: grid; gap: 4px; min-width: 0; flex: 1 1 140px; max-width: 280px; }
+.pet-picker select { width: 100%; min-height: 44px; padding: 8px 10px; font-size: 13px; }
+.pet-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.pet-controls .btn { font-size: 12px; padding: 10px 12px; }
+.pet-list { display: grid; gap: 8px; margin: 18px 0; }
+.pet-list-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.pet-list-row > div { min-width: 0; overflow-wrap: anywhere; }
+.pet-list-row span { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+.pet-list-row button { max-width: 45%; overflow-wrap: anywhere; }
+.session-screen { max-width: 620px; margin: 24px auto; text-align: center; }
+.session-screen h1 { font-size: clamp(32px,6vw,48px); margin: 20px 0; }
+.session-explainer { margin: 22px 0 0; font-size: 12px; color: var(--muted); }
+.compact-dashboard { grid-template-columns: minmax(0,.8fr) minmax(0,1.4fr); align-items: start; }
+.compact-dashboard > .card { min-width: 0; }
+.compact-dashboard .profile-card { grid-row: auto; }
+.compact-dashboard .profile-art { width: 82px; height: 82px; float: right; margin: 4px 0 12px 12px; }
+.compact-dashboard .profile-card h2 { text-align: left; font-size: 28px; margin-top: 10px; }
+.compact-dashboard .profile-card > .muted { text-align: left; font-size: 12px; }
+.compact-dashboard .profile-card .details { clear: both; padding-top: 4px; }
+.routine-heading { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+.routine-heading > div { min-width: 0; }
+.routine-heading h2 { font-size: 30px; margin: 8px 0 14px; }
+.routine-heading .badge { max-width: 45%; overflow-wrap: anywhere; }
+.routine-row { display: grid; grid-template-columns: 34px minmax(0,1fr) 44px; gap: 12px; align-items: center; padding: 16px 0; border-top: 1px solid var(--line); }
+.routine-copy h3 { font-size: 15px; margin: 0 0 5px; }
+.routine-copy p { font-size: 12px; color: var(--muted); margin: 0; overflow-wrap: anywhere; }
+.routine-copy strong { color: var(--ink); }
+.routine-action { width: 44px; height: 44px; border: 1px solid #d7e0d2; border-radius: 13px; background: #edf1e7; display: grid; place-items: center; padding: 0; color: var(--green); }
+.routine-action:hover { background: #dfe9d9; }
+.routine-action .icon { width: 22px; height: 22px; background: transparent; }
+.routine-action .icon svg { width: 20px; height: 20px; }
+.meal-row > .icon { background: #f2e9d9; }
+.family-row > .icon { background: #e4edf1; }
+.routine-footnote { font-size: 11px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; margin: 0; }
+@media (max-width: 760px) {
+  .pet-controls { padding: 0 20px 10px; }
+  .pet-picker { max-width: none; }
+  .compact-dashboard { grid-template-columns: minmax(0,1fr); gap: 14px; }
+  .routine-card { padding: 20px; }
+  .routine-heading h2 { font-size: 28px; }
+  .routine-row { gap: 10px; padding: 14px 0; }
+  .routine-heading .eyebrow { font-size: 9px; letter-spacing: 1px; }
 }
