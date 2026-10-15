@@ -56,7 +56,7 @@ export function createAccount({config, createClient, storage = () => window.loca
     emailReady();
     const token = String(value || '').trim();
     if (!pendingEmail) throw Error('Be om en kode først.');
-    if (!/^\d{6}$/.test(token)) throw Error('Skriv den sekssifrede koden fra e-posten.');
+    if (!/^\d{8}$/.test(token)) throw Error('Skriv den åttesifrede koden fra e-posten.');
     if (emailBusy) throw Error('Vent til forespørselen er ferdig.');
     emailBusy = true;
     try {

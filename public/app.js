@@ -1093,7 +1093,7 @@
     let address = '', busy = false;
     function show(codeStep) {
       box.innerHTML = codeStep
-        ? `<form id="email-code-form"><p>Sjekk innboksen og søppelposten til <strong>${html(address)}</strong>.</p><label for="login-code">Engangskode</label><input id="login-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required placeholder="6 siffer"><button class="btn" type="submit">Bekreft og logg inn</button><button id="email-resend" class="text-button" type="button">Send ny kode</button><button id="email-change" class="text-button" type="button">Endre e-postadresse</button></form>`
+        ? `<form id="email-code-form"><p>Sjekk innboksen og søppelposten til <strong>${html(address)}</strong>.</p><label for="login-code">Engangskode</label><input id="login-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" minlength="8" maxlength="8" required placeholder="8 siffer"><button class="btn" type="submit">Bekreft og logg inn</button><button id="email-resend" class="text-button" type="button">Send ny kode</button><button id="email-change" class="text-button" type="button">Endre e-postadresse</button></form>`
         : `<form id="email-address-form"><label for="login-email">E-postadresse</label><input id="login-email" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="deg@eksempel.no" value="${html(address)}"><p class="muted">Vi sender en engangskode. Første gang opprettes en konto når du bekrefter e-posten.</p><button class="btn" type="submit">Send innloggingskode</button></form>`;
       const form = box.querySelector('form');
       async function run(work) {
