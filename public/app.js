@@ -389,7 +389,7 @@
     `<span class="icon icon-${n}" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="${paths[n] || paths.paw}"/></svg></span>`;
   const actionIcons = {pets:'paw', logout:'logout', profile:'edit', 'add-pet':'plus', confirm:'check', correct:'edit', close:'close', 'logout-confirm':'logout', resume:'paw'};
   const btn = (label, action, cls = "secondary", id = "") =>
-    `<button class="btn ${cls}" data-action="${action}"${id ? ` data-id="${html(id)}"` : ""}>${actionIcons[action]?icon(actionIcons[action]):''}${label}</button>`;
+    `<button type="button" class="btn ${cls}" data-action="${action}"${id ? ` data-id="${html(id)}"` : ""}>${actionIcons[action]?icon(actionIcons[action]):''}${label}</button>`;
   const card = (title, ico, body, cls = "", extra = "") =>
     `<section class="card ${cls}"><div class="card-top"><h3>${icon(ico)}${title}</h3>${extra}</div>${body}</section>`;
   const empty = (s) => `<p class="empty">${s}</p>`;
@@ -767,9 +767,9 @@
   }
   $('dialog').addEventListener('cancel',clearDialogCredentials);
   $('dialog').addEventListener('close',()=>{if(!$('dialog').open)clearDialogCredentials();});
-  let modalReturn = null;
+  let modalReturn = null, modalOpenedAt=0;
   function modal(content) {
-    modalReturn = document.activeElement;
+    modalReturn = document.activeElement;modalOpenedAt=Date.now();
     $("dialog-content").innerHTML = content;
     if (cloudMode) for (const el of document.querySelectorAll('#dialog-content .muted')) el.textContent=el.textContent.replace('Profiler og historikk lagres bare i denne nettleseren.', 'Profiler og historikk lagres i den valgte kontooversikten.');
     $("dialog").showModal();
@@ -786,7 +786,7 @@
   }
   function privacy() {
     if (account?.enabled) {
-      modal(`<h2 id="dialog-title">Dine data på kontoen</h2><p>Dyreprofiler og historikk lagres i Nika sitt separate Supabase-prosjekt i Stockholm. Din private oversikt er bare tilgjengelig for deg. Velger du familiedeling, får medlemmene lese og redigere familiens separate oversikt. Invitasjonskoder gir tilgang og skal deles privat.</p><p>Du logger inn med e-post og ditt eget Nika-passord, eller en tilgjengelig innloggingstjeneste. E-postkode brukes ved registrering og når du trenger å opprette eller tilbakestille passord. Nika får ikke tilgang til innboksen din eller e-postpassordet ditt. Innlogging gir ingen administratortilgang.</p><p>Tidligere lokale data ligger fortsatt lokalt og lastes ikke opp automatisk. GPS er valgfritt. Posisjoner registreres kun etter at du slår på GPS, og pauses når siden skjules. GPS-ruter i familiens oversikt deles med familiemedlemmene. Supportmeldinger er bare tilgjengelige for deg og Nika-administratoren. Administratoren ser registrert e-post, registreringsdato og siste innlogging, men ikke dyreprofilene dine. Ingen skjult sporing brukes.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${btn("Slett dyredata på kontoen","cloud-reset","danger")}${btn("Lukk","close")}</div>`);
+      modal(`<h2 id="dialog-title">Dine data på kontoen</h2><p>Dyreprofiler og historikk lagres i Nika sitt separate Supabase-prosjekt i Stockholm. Din private oversikt er bare tilgjengelig for deg. Velger du familiedeling, får medlemmene lese og redigere familiens separate oversikt. Invitasjonskoder gir tilgang og skal deles privat.</p><p>Du logger inn med e-post og ditt eget Nika-passord, eller en tilgjengelig innloggingstjeneste. E-postkode brukes ved registrering og når du trenger å opprette eller tilbakestille passord. Nika får ikke tilgang til innboksen din eller e-postpassordet ditt. Innlogging gir ingen administratortilgang.</p><p>Tidligere lokale data ligger fortsatt lokalt og lastes ikke opp automatisk. GPS er valgfritt. Posisjoner registreres kun etter at du slår på GPS, og pauses når siden skjules. GPS-ruter i familiens oversikt deles med familiemedlemmene. Supportmeldinger er bare tilgjengelige for deg og Nika-administratoren. Administratoren ser registrert e-post, registreringsdato og siste innlogging, men ikke dyreprofilene dine. Ingen skjult sporing brukes.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${cloudMode?btn("Slett dyredata på kontoen","cloud-reset","danger"):""}${btn("Lukk","close")}</div>`);
       return;
     }
     modal(
@@ -893,14 +893,14 @@
       exportData();
       return;
     }
-    if (a === "resume") {
+    if (a === "resume" && !account?.enabled) {
       try { sessionStorage.removeItem('nika-home-after-logout'); } catch {}
       d.sessionEnded=false;
       save(); go("home");
       return;
     }
     if (d.sessionEnded && !["reset","reset-confirm"].includes(a)) return;
-    if (a === "logout" && d.dog) {
+    if (a === "logout" && (d.dog || cloudMode)) {
       if (cloudMode) { handleAccountAction('cloud-logout', b); return; }
       modal(`<section class="logout-panel"><h2 id="dialog-title">Logge ut?</h2><p>Du tas til forsiden. Dyreprofiler og historikk beholdes på denne enheten.</p>${allPets().some(p=>p.active)?"<p>En tur pågår. Tiden fortsetter til du åpner profilen og avslutter turen.</p>":""}<p class="notice">Eldre lokal lagring har ingen konto eller passord. Utlogging låser ikke profilene. Andre som bruker denne nettleseren kan åpne dem igjen.</p><div class="form-actions">${btn("Logg ut","logout-confirm","")}${btn("Avbryt","close")}</div></section>`);
       return;
@@ -1144,7 +1144,7 @@
     }
   });
   $("dialog").addEventListener("click", (e) => {
-    if (e.target === $("dialog")) closeModal();
+    if (e.target === $("dialog") && e.detail<=1 && Date.now()-modalOpenedAt>350) closeModal();
   });
   let today = dateKey();
   setInterval(() => {

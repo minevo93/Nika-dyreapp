@@ -15,19 +15,31 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npm run build:account && npm run test:account && node tests/password.cjs
-      - run: npx playwright install --with-deps chromium
-      - run: npm test
-      - run: node tests/responsive.cjs
-      - run: node tests/registration.cjs
-      - run: node tests/multi-pet.cjs
-      - run: node tests/account-browser.cjs
-      - run: node tests/password-browser.cjs
-      - run: node tests/support-browser.cjs
-      - run: node tests/pet-photo.cjs
-      - run: node tests/gps.cjs && node tests/family.cjs
-      - run: node tests/gps-browser.cjs
-      - run: node tests/family-browser.cjs
+      - run: npm run build:account && npm run test:account && node tests/password.cjs && node tests/support.cjs
+      - id: browser-setup
+        run: npx playwright install --with-deps chromium
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: npm test
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/responsive.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/registration.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/multi-pet.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/account-browser.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/password-browser.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/support-browser.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/pet-photo.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/gps.cjs && node tests/family.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/gps-browser.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/family-browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
