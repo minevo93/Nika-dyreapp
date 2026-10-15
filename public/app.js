@@ -728,10 +728,11 @@
     if (cloudMode) document.querySelector('#page-body > .notice').innerHTML = `<p>Dette er en navneliste for oppgaver og roller. Den gir ingen andre tilgang. Kontotilgang administreres separat i Familiedeling.</p>${btn('Administrer familiedeling','sharing','')}`;
   }
   // Remove credentials on every dialog close, including Escape and displayed passwords.
-  $('dialog').addEventListener('close',()=>{
-    if($('dialog').open)return;
+  function clearDialogCredentials(){
     $('dialog-content').querySelectorAll('.password-field input,#login-code,#password-nonce').forEach(input=>{input.value='';});
-  });
+  }
+  $('dialog').addEventListener('cancel',clearDialogCredentials);
+  $('dialog').addEventListener('close',()=>{if(!$('dialog').open)clearDialogCredentials();});
   let modalReturn = null;
   function modal(content) {
     modalReturn = document.activeElement;
@@ -740,6 +741,7 @@
     $("dialog").showModal();
   }
   function closeModal() {
+    clearDialogCredentials();
     $("dialog").close();
     if (modalReturn?.isConnected) modalReturn.focus();
   }
