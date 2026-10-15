@@ -208,8 +208,13 @@ async function store(p) {
   pass("Familie CRUD med lokale roller og tydelig begrensning");
   await nav(p, "Oversikt");
   assert.match(await p.locator('.banner-dog').getAttribute('src'), /nika-dog-duo-v3\.webp$/);
-  assert.match(await p.locator('.profile-art').getAttribute('src'), /nika-dog-reference-v2\.webp$/);
-  await p.locator('.welcome-banner img, .profile-art').evaluateAll(imgs => Promise.all(imgs.map(img => img.decode())));
+  if (!process.env.NIKA_TEST_URL || await p.locator('.pet-avatar').count()) {
+    assert.equal(await p.locator('.pet-avatar strong').innerText(), 'L');
+  } else {
+    // Production stays on the previous tested release until the manual upload.
+    assert.match(await p.locator('.profile-art').getAttribute('src'), /nika-dog-reference-v2\.webp$/);
+  }
+  await p.locator('.welcome-banner img').evaluateAll(imgs => Promise.all(imgs.map(img => img.decode())));
   await p.screenshot({
     path: path.join(evidence, "dashboard-desktop.png"),
     fullPage: true,

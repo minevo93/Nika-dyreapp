@@ -1280,6 +1280,10 @@ footer p {
 .compact-dashboard > .card { min-width: 0; }
 .compact-dashboard .profile-card { grid-row: auto; }
 .compact-dashboard .profile-art { width: 82px; height: 82px; float: right; margin: 4px 0 12px 12px; }
+.pet-avatar { width: 72px; height: 72px; float: right; margin: 4px 0 12px 12px; border-radius: 24px; border: 1px solid #d2ddcc; background: #e2eadb; color: var(--green); display: flex; align-items: center; justify-content: center; gap: 2px; }
+.pet-avatar strong { font-family: Georgia,serif; font-size: 34px; font-weight: 500; }
+.pet-avatar .icon { width: 24px; height: 24px; background: transparent; }
+.pet-avatar .icon svg { width: 22px; height: 22px; }
 .compact-dashboard .profile-card h2 { text-align: left; font-size: 28px; margin-top: 10px; }
 .compact-dashboard .profile-card > .muted { text-align: left; font-size: 12px; }
 .compact-dashboard .profile-card .details { clear: both; padding-top: 4px; }

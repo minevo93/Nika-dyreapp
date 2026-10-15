@@ -14,7 +14,7 @@ const nav=(p,n)=>p.getByRole('navigation').getByRole('button',{name:n,exact:true
 async function answer(p,text){await p.locator('#answer').fill(text);await p.locator('#answer').press('Enter');}
 async function fresh(){const ctx=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Oslo'});const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});p.on('response',r=>{if(r.status()>=400)errors.push(r.status()+' '+r.url());});await p.goto(base);return {ctx,p};}
 async function add(p,text){await act(p,'pets');await act(p,'add-pet');await answer(p,text);await act(p,'confirm');}
-async function photo(p,name){await p.screenshot({path:path.join(evidence,name+'.png'),fullPage:true,animations:'disabled'});console.log('NIKA_IMAGE '+name+' '+(await p.screenshot({type:'jpeg',quality:70,fullPage:true,animations:'disabled'})).toString('base64'));}
+async function photo(p,name){await p.waitForFunction(()=>!document.getElementById('toast').textContent,{},{timeout:5000});const fullPage=!/switcher|logout/.test(name);await p.screenshot({path:path.join(evidence,name+'.png'),fullPage,animations:'disabled'});console.log('NIKA_IMAGE '+name+' '+(await p.screenshot({type:'jpeg',quality:70,fullPage,animations:'disabled'})).toString('base64'));}
 (async()=>{
   fs.mkdirSync(evidence,{recursive:true});
   if(!process.env.NIKA_TEST_URL){server=spawn(process.execPath,[path.join(__dirname,'server.cjs')],{stdio:'ignore'});for(let i=0;i<30;i++){try{await fetch(base);break;}catch{await new Promise(r=>setTimeout(r,100));}}}
@@ -22,6 +22,7 @@ async function photo(p,name){await p.screenshot({path:path.join(evidence,name+'.
   let {ctx,p}=await fresh();
   await answer(p,'Jessica schæfer tispe 2 år');
   assert.match(await p.locator('.onboard-summary').innerText(),/Jessica[\s\S]*schæfer[\s\S]*2 år[\s\S]*Hunn/);
+  await photo(p,'sentence-summary-mobile');
   await act(p,'correct');
   assert.equal(await p.locator('#draft-name').inputValue(),'Jessica');
   assert.equal(await p.locator('#draft-sex').inputValue(),'Hunn');
@@ -40,6 +41,7 @@ async function photo(p,name){await p.screenshot({path:path.join(evidence,name+'.
   await p.locator('#pet-select').selectOption(jessica);d=await store(p);assert.equal(d.dog.name,'Jessica');assert.equal(d.active.events.length,1);assert.equal(d.meals[0].food,'Jessica-fôr');assert.equal(d.feedings.length,0);assert.equal(d.places[0].name,'Skogstien');
   await nav(p,'Turer');await act(p,'endwalk');
   await p.locator('#pet-select').selectOption(tyra);d=await store(p);assert.equal(d.feedings.length,1);assert.equal(d.walks.length,0);assert.equal(d.places.length,0);
+  assert.equal(await p.locator('.pet-avatar strong').innerText(),'T');
   console.log('PASS_MULTI separate walks, meals, feeding history and places; shared family; ongoing walk survives profile switch');
   await add(p,'Jeg har en katt som heter Mio. Han er en huskatt og er 6 måneder gammel.');d=await store(p);assert.equal(d.dog.species,'Katt');assert.equal(d.dog.sex,'Hann');assert.equal(d.dog.name,'Mio');const mio=d.petId;
   await nav(p,'Mitt dyr');assert.equal(await p.locator('#dog-species').inputValue(),'Katt');await p.locator('#dog-name').fill('Mio Test');await p.getByRole('button',{name:'Lagre profil',exact:true}).click();await p.reload();assert.match(await p.locator('.welcome-banner h1').innerText(),/Mio Test/);
@@ -48,7 +50,7 @@ async function photo(p,name){await p.screenshot({path:path.join(evidence,name+'.
   await act(p,'pets');await act(p,'add-pet');await answer(p,'Fido');await p.reload();assert.equal((await store(p)).addingPet,true);assert.equal((await store(p)).dog.name,'Jessica');await act(p,'cancel-pet');await act(p,'pets');await act(p,'add-pet');assert.match(await p.locator('#messages').innerText(),/Fido/);await act(p,'cancel-pet');
   console.log('PASS_MULTI extra-animal registration resumes after reload and cancellation without overwriting existing profile');
   await p.locator('#pet-select').selectOption(tyra);await nav(p,'Turer');await act(p,'startwalk');await p.locator('#pet-select').selectOption(jessica);
-  await act(p,'logout');assert.match(await p.locator('#dialog-content').innerText(),/ingen konto eller passord/);await act(p,'logout-confirm');assert.match(await p.locator('h1').innerText(),/logget ut/);assert.equal((await store(p)).otherPets.length,2);await p.reload();assert.match(await p.locator('h1').innerText(),/logget ut/);assert.match(await p.locator('.session-screen').innerText(),/En tur pågår/);await act(p,'resume');assert.equal((await store(p)).dog.name,'Jessica');await p.locator('#pet-select').selectOption(tyra);assert.ok((await store(p)).active);await nav(p,'Turer');await act(p,'endwalk');assert.equal((await store(p)).walks.length,1);
+  await act(p,'logout');assert.match(await p.locator('#dialog-content').innerText(),/ingen konto eller passord/);await act(p,'logout-confirm');assert.match(await p.locator('h1').innerText(),/logget ut/);assert.equal((await store(p)).otherPets.length,2);await p.reload();assert.match(await p.locator('h1').innerText(),/logget ut/);assert.match(await p.locator('.session-screen').innerText(),/En tur pågår/);await photo(p,'local-logout-mobile');await act(p,'resume');assert.equal((await store(p)).dog.name,'Jessica');await p.locator('#pet-select').selectOption(tyra);assert.ok((await store(p)).active);await nav(p,'Turer');await act(p,'endwalk');assert.equal((await store(p)).walks.length,1);
   console.log('PASS_MULTI honest local logout, persisted ended session, resume and inactive-profile active walk');
   for(const [width,height,name] of [[390,844,'compact-dashboard-mobile'],[844,390,'compact-dashboard-landscape'],[1440,1000,'compact-dashboard-desktop']]){await p.setViewportSize({width,height});await nav(p,'Oversikt');assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);const small=await p.locator('button').evaluateAll(es=>es.filter(e=>{const r=e.getBoundingClientRect();return r.width && (r.width<44||r.height<44);}).map(e=>e.textContent));assert.deepEqual(small,[]);await photo(p,name);}
   await p.setViewportSize({width:390,height:844});await act(p,'pets');await photo(p,'pet-switcher-mobile');await act(p,'close');
@@ -67,5 +69,8 @@ async function photo(p,name){await p.screenshot({path:path.join(evidence,name+'.
   await ctx.close();({ctx,p}=await fresh());
   await p.evaluate(({KEY,raw})=>localStorage.setItem(KEY,raw),{KEY,raw});await p.addInitScript(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='nika-demo-v2-before-multi')throw new DOMException('Full','QuotaExceededError');return original.call(this,k,v);};});await p.reload();assert.match(await p.locator('.welcome-banner h1').innerText(),/Eldre Luna/);assert.match(await p.locator('#storage-alert').innerText(),/lagring/);assert.equal(await p.evaluate(k=>localStorage.getItem(k),KEY),raw);
   console.log('PASS_MULTI migration backup failure preserves original and usable in-memory profile');
-  await ctx.close();assert.deepEqual(errors,[]);console.log('PASS_MULTI_ALL 10 multi-pet test groups and no console/resource errors');
+  await ctx.close();({ctx,p}=await fresh());
+  await p.addInitScript(()=>Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Disabled','SecurityError');}}));await p.reload();await answer(p,'Luna golden retriever 3 år');await act(p,'confirm');await add(p,'Tyra samojed 4 år');assert.match(await p.locator('.welcome-banner h1').innerText(),/Tyra/);assert.equal(await p.locator('#pet-select option').count(),2);assert.match(await p.locator('#storage-alert').innerText(),/Kunne ikke lagre/);await act(p,'logout');await act(p,'logout-confirm');assert.match(await p.locator('h1').innerText(),/logget ut/);await act(p,'resume');assert.match(await p.locator('.welcome-banner h1').innerText(),/Tyra/);
+  console.log('PASS_MULTI two animals and local logout work in memory when storage is unavailable, with persistent warning');
+  await ctx.close();assert.deepEqual(errors,[]);console.log('PASS_MULTI_ALL 11 multi-pet test groups and no console/resource errors');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();if(server)server.kill();});
