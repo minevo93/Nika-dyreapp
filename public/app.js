@@ -499,7 +499,7 @@
     // Match the requested reading order: title, supporting copy, then the family line.
     document.querySelector('.welcome-top').append(document.querySelector('.welcome-top .eyebrow'));
     const msgsEl = $("messages");
-    if (cloudMode) for (const el of document.querySelectorAll('.chat-help')) el.textContent = el.textContent.replace('Opplysningene lagres bare i denne nettleseren.', shared?'Opplysningene deles med familien.':'Opplysningene lagres privat på kontoen din.');
+    if (cloudMode) for (const el of document.querySelectorAll('.chat-help')) el.textContent = el.textContent.replace('Opplysningene lagres bare i denne nettleseren.', account.workspace==='family'?'Opplysningene deles med familien.':'Opplysningene lagres privat på kontoen din.');
     msgsEl.scrollTop = msgsEl.scrollHeight;
     const form = $("onboard-form");
     if (form) form.onsubmit = (e) => {
