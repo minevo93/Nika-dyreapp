@@ -1,0 +1,28 @@
+name: Nika public production browser verification
+on:
+  push:
+    branches: [feat/nika-demo-v2]
+    paths:
+      - .github/workflows/live-test.yml
+      - tests/**
+permissions:
+  contents: read
+jobs:
+  public-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NIKA_TEST_URL: https://nika-dyreapp.netlify.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nika-public-production-evidence
+          path: evidence/
