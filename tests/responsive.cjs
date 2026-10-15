@@ -72,6 +72,17 @@ async function photo(p, name) {
     await p.locator('#answer').press('Enter');
     await p.getByRole('button',{name:'Ja, opprett profilen',exact:true}).click();
     await p.locator('.banner-dog').evaluate(img=>img.decode());
+    assert.equal(await p.locator('main').evaluate(e=>getComputedStyle(e).outlineStyle),'none','navigation must not draw a frame around the page');
+    if(width===390 && height===844) {
+      await p.locator('.pet-avatar').click();
+      assert.equal(await p.locator('#dialog[open]').count(),1,'profile avatar opens editing');
+      await p.locator('[data-action="close"]').click();
+      await p.locator('[data-action="pets"]').focus();
+      await p.keyboard.press('Tab');
+      const focus=await p.evaluate(()=>({width:getComputedStyle(document.activeElement).outlineWidth,color:getComputedStyle(document.activeElement).outlineColor}));
+      assert.notEqual(focus.width,'0px','keyboard focus stays visible');
+      assert.equal(focus.color,'rgb(49, 91, 73)','keyboard focus uses brand green');
+    }
     assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'dashboard overflow');
     const banner=await p.evaluate(()=>{const b=document.querySelector('.welcome-banner').getBoundingClientRect();const i=document.querySelector('.banner-dog').getBoundingClientRect();return {br:b.right,ir:i.right,iy:i.y,by:b.y};});
     if (currentLayout && (width<=760 || (width>height && width<=1024 && height<=560))) {
