@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#274f40" />
+    <meta
+      name="description"
+      content="Nika samler dyrenes hverdag. Opprett en privat konto og hold oversikt over dyreprofiler, turer og måltider."
+    />
+    <title>Nika – Dyreappen</title>
+    <link rel="icon" href="assets/paw.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="registration.js" defer></script>
+    <script src="account.bundle.js" defer></script>
+    <script src="pet-photo.js" defer></script>
+    <script src="gps.js" defer></script>
+<script src="support.js" defer></script>
+<script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#content">Hopp til innhold</a>
+    <header class="header">
+      <a class="brand" href="#home" aria-label="Nika – Dyreappen, hjem"
+        ><img src="assets/paw.svg" width="38" height="38" alt="" /><span
+          >Nika<small>DYREAPPEN</small></span
+        ></a
+      >
+      <nav aria-label="Hovedmeny" id="nav"></nav>
+      <span class="account-tag" hidden></span><div id="header-tools" class="header-tools"></div>
+      <button id="account-button" class="btn secondary" data-action="account" hidden>Logg inn</button>
+    </header>
+    <div id="pet-controls" class="pet-controls" hidden></div>
+    <div id="storage-alert" role="alert" hidden></div>
+    <main id="content" tabindex="-1"></main>
+    <footer>
+      <a class="brand footer-brand" href="#home"
+        >Nika<span>Små øyeblikk. Et godt dyreliv.</span></a
+      >
+      <p class="partnership">I samarbeid med <a href="https://www.miveno.no" rel="noopener">www.miveno.no</a> &amp; <a href="https://www.pusterom.eu" rel="noopener">www.pusterom.eu</a></p>
+      <p id="data-location" hidden>Lagret på kontoen</p>
+      <button class="text-button" data-action="privacy">
+        Personvern og dine data
+      </button>
+      <button class="text-button" data-action="support">Kontakt Nika-support</button>
+    </footer>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <dialog id="dialog" aria-labelledby="dialog-title">
+      <div id="dialog-content"></div>
+    </dialog>
+    <noscript
+      ><p class="notice">
+        Slå på JavaScript for å bruke Nika.
+      </p></noscript
+    >
+  </body>
+</html>

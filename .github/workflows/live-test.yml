@@ -1,0 +1,38 @@
+name: Nika public production browser verification
+on:
+  push:
+    branches: [feat/nika-demo-v2]
+    paths:
+      - .github/workflows/live-test.yml
+      - tests/**
+      - public/**
+      - src/**
+permissions:
+  contents: read
+jobs:
+  public-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NIKA_TEST_URL: https://www.nikaappen.no
+      NIKA_EXPECT_MOBILE_V6: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: node tests/public-release.cjs
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - run: node tests/responsive.cjs
+      - run: node tests/registration.cjs
+      - run: node tests/multi-pet.cjs
+      - run: node tests/account-public.cjs
+      - run: node tests/pet-photo.cjs
+      - run: node tests/gps-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nika-public-production-evidence
+          path: evidence/

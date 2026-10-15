@@ -1,0 +1,8 @@
+.netlify/
+node_modules/
+.env
+.env.*
+.DS_Store
+evidence/
+test-results/
+supabase/.temp/

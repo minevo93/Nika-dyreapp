@@ -1,0 +1,47 @@
+name: Nika browser tests
+on:
+  pull_request:
+  push:
+    branches: [main, feat/nika-demo-v2]
+permissions:
+  contents: read
+jobs:
+  browser-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build:account && npm run test:account && node tests/password.cjs && node tests/support.cjs
+      - id: browser-setup
+        run: npx playwright install --with-deps chromium
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: npm test
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/responsive.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/registration.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/multi-pet.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/account-browser.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/password-browser.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/support-browser.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/pet-photo.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/gps.cjs && node tests/family.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/gps-browser.cjs
+      - if: ${{ !cancelled() && steps.browser-setup.outcome == 'success' }}
+        run: node tests/family-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nika-browser-evidence
+          path: evidence/
