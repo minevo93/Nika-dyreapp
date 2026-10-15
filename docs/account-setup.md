@@ -13,6 +13,14 @@ Arbeidsgren `feat/nika-demo-v2`. **Ikke aktivert eller publisert med ekte innlog
 - Nettlesertest av kontoarbeidsflyt med simulert tjeneste besto i Chromium via [GitHub Actions](https://github.com/minevo93/Nika-dyreapp/actions/runs/38730846008): kontodyr atskilt fra lokale dyr, profilredigering/oppdatering, ærlig familietekst, Microsoft-valg og utlogging til forsiden. De eksisterende funksjons- og layouttestene besto også. Ingen ekte OAuth-pålogging er testet.
 - Supabase sikkerhetskontroll etter migreringene: ingen merknader. Plattformens automatiske RLS-trigger hadde offentlige EXECUTE-rettigheter; disse er fjernet kun i Nika-prosjektet. Selve triggeren forblir aktiv.
 
+## Eget domene
+
+Hovedadresse: `https://www.nikaappen.no/`. Netlify videresender rotdomenet dit, og HTTPS svarer. Appens faste OAuth-returadresse er oppdatert til samme URL. Supabase Site URL og eksakt Redirect URL er satt til denne adressen; den tidligere Netlify-returadressen beholdes under overgangen. Ingen wildcard er lagt til.
+
+Google JavaScript origin endres til `https://www.nikaappen.no`. Leverandørenes OAuth callback skal fortsatt være `https://irqcatqpllzzcktjnffq.supabase.co/auth/v1/callback`; den skal ikke erstattes med nettsidens adresse. Provider-aktivering og reelle innloggingstester gjenstår.
+
+Lokale demodata er knyttet til nettadressen i nettleseren. Data fra den gamle Netlify-adressen vises ikke automatisk på det nye domenet. Ingen gamle data er slettet eller lastet opp.
+
 ## Det som blokkerer aktivering
 
 Kontroll 15. oktober kl. 17 Oslo: Site URL er lagret som `https://nika-dyreapp.netlify.app/`. Google og Azure er fortsatt av. Google Cloud viste «Site Unavailable» i arbeidsnettleseren også etter én oppdatering. Microsoft Entra åpnet en reell innloggingsside; sikker eierinnlogging kreves for videre appregistrering. SMTP er ikke aktivert.
@@ -21,9 +29,9 @@ Eierens ønskede administratoradresse er kontrollert mot Auth Users, men har enn
 
 Supabase `/auth/v1/settings` bekreftet `google: false` og `azure: false` den 15. oktober 2026. Vi mangler Nika-spesifikke OAuth-appregistreringer og konfigurasjon hos leverandørene. Det finnes ingen tilgjengelig tilkoblet integrasjon for disse administrasjonsoppgavene. Ikke send klienthemmeligheter i chat eller legg dem i GitHub.
 
-1. Google Cloud: registrer Nika, audience External, bare `openid`, `email`, `profile`, OAuth web client. JavaScript origin: `https://nika-dyreapp.netlify.app`. Callback: `https://irqcatqpllzzcktjnffq.supabase.co/auth/v1/callback`. Bruk klient-ID og hemmelighet bare i Supabase sin Google-provider. Fjern testbrukerbegrensningen før offentlig lansering, etter Googles krav.
+1. Google Cloud: registrer Nika, audience External, bare `openid`, `email`, `profile`, OAuth web client. JavaScript origin: `https://www.nikaappen.no`. Callback: `https://irqcatqpllzzcktjnffq.supabase.co/auth/v1/callback`. Bruk klient-ID og hemmelighet bare i Supabase sin Google-provider. Fjern testbrukerbegrensningen før offentlig lansering, etter Googles krav.
 2. Microsoft Entra: egen app Nika med **Personal Microsoft accounts** (Hotmail/Outlook/Live). Web callback som over. Supabase Azure Tenant URL: `https://login.microsoftonline.com/consumers`. Legg inn klient-ID/hemmelighet i Supabase Azure-provider, og noter hemmelighetens utløpsdato. Aktiver anbefalt `xms_edov` og `email` optional claims. Ikke bruk single-tenant organisasjonspålogging.
-3. Supabase Site URL og tillatt returadresse: nøyaktig `https://nika-dyreapp.netlify.app/`. Ikke bruk wildcard til vilkårlige forhåndsvisninger. Behold e-postbekreftelse; e-post/passord er ikke en offentlig arbeidsflyt før SMTP er konfigurert.
+3. Supabase Site URL og tillatt returadresse: nøyaktig `https://www.nikaappen.no/`. Ikke bruk wildcard til vilkårlige forhåndsvisninger. Behold e-postbekreftelse; e-post/passord er ikke en offentlig arbeidsflyt før SMTP er konfigurert.
 4. Test reell registrering med én Google-konto og én personlig Microsoft-konto, avbrutt samtykke, oppdatering, separate data, utlogging og tilbakeknapp. Hver bruker skal bare være i Auth Users, aldri i Supabase-organisasjonens team.
 5. Sett `enabled: true` i `src/account.js`, bygg, test i forhåndsvisning, og publiser til eksisterende Netlify Site ID. Endre aldri flagget for å omgå manglende leverandøroppsett.
 
