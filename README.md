@@ -57,4 +57,4 @@ Designreferansefilen var ikke tilgjengelig i arbeidsmiljøet under implementerin
 
 ## Utført kvalitetssikring
 
-Se [TESTING.md](TESTING.md) for 17 beståtte nettlesertestgrupper, faktisk miljø, mobil-/desktopskjermbilder og den konkrete gjenværende Netlify-blokkeringen. Koden er testet; offentlig publisering er foreløpig ikke verifisert.
+Se [TESTING.md](TESTING.md) for 19 beståtte nettlesertestgrupper, faktisk miljø, mobil-/desktopskjermbilder og den konkrete gjenværende Netlify-blokkeringen. Koden og sikkerhetsreglene for direktepublisering er testet; offentlig publisering er foreløpig ikke verifisert.

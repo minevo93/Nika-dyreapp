@@ -1,5 +1,20 @@
 # Verifisering – Nika demo v2
 
+## Ny kontroll: isolert direktepublisering
+
+Commit `618eba1485087c8cc596a327eb6f4f91ee22877c` besto **19 av 19 testgrupper** i [denne GitHub Actions-kjøringen](https://github.com/minevo93/Nika-dyreapp/actions/runs/38702551606). Samme Chromium-versjon og bredder som under.
+
+I tillegg til de 17 kontrollene nedenfor er følgende verifisert:
+
+- Sikkerhetsheadere følger de statiske filene i `public/_headers`, slik at også direkte ZIP-publisering har CSP og `nosniff`. Testserveren bruker disse reglene under alle nettlesertestene.
+- Dataeksport laster faktisk ned gyldig `nika-data.json` under samme CSP.
+
+Nika-pakken inneholder kun `index.html`, `style.css`, `app.js`, `_headers` og de to SVG-filene i `assets/`. Den inneholder ingen testprofiler, andre prosjekter, dokumentasjon eller nøkler. På Netlify skal den bare lastes inn i `nika-dyreapp`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Ingen andre prosjekter eller teaminnstillinger skal endres.
+
+Netlify-administrasjon viser fortsatt innlogging i arbeidsøkten. Det er ingen verifisert live-deploy. Ny sikker innlogging fikk tidsavbrudd; direkte kontroll i Nika-prosjektets egen Netlify-fane viser også innloggingssiden. Publisering kan fortsette når brukeren har fullført innlogging i den overleverte nettleseren. Kode- og pakkekontroll er fullført uavhengig av denne tilgangsblokkeringen.
+
+## Tidligere kontroll og visuelle bevis
+
 Kontrollert 15. oktober 2026. Appkode testet på commit `e127f7aaeb6888f03d9c39c2a01fe5364a4d6d9d`.
 
 **17 av 17 testgrupper bestått.** [Vellykket GitHub Actions-kjøring](https://github.com/minevo93/Nika-dyreapp/actions/runs/38672391894).
