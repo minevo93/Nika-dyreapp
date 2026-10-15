@@ -6,7 +6,7 @@ En norsk, lokal webdemo for dyrehverdagen. Vanlig HTML, CSS og JavaScript, uten 
 
 **Live og offentlig testet:** https://nika-dyreapp.netlify.app/
 
-Produksjonsdeploy `6ad0c1cda037728230eda36a` er `ready`, publisert 15. oktober 2026 kl. 14:06 Oslo-tid via Netlify Drop til det eksisterende Nika-prosjektet. Forsidetekstene følger rekkefølgen overskrift → støttesetninger → «DITT DYR. DIN FAMILIE. DERES HVERDAG.», med én eller to linjer per tekst. Mobil har fast bunnmeny med alle fem hovedvalg og plass under innholdet, stående og liggende. Begge tekstkortene ved Nika og Tyra er synlige på mobil. Lokal utlogging går til forsiden og bevarer profilene. Funksjonene med flere dyr, setningsregistrering, turer, måltider og kompakt hverdagsoversikt er bevart. [Produksjonstesten](https://github.com/minevo93/Nika-dyreapp/actions/runs/38732405926) verifiserte publiserte filer mot kodebasen og besto funksjonstestene, ti skjermstørrelser og rotasjon. Se [TESTING.md](TESTING.md).
+Produksjonsdeploy `6ad0d4085ad29accfc6fce24` er `ready`, publisert 15. oktober 2026 kl. 15:24 Oslo-tid via Netlify Drop til det eksisterende Nika-prosjektet. Webkode: `5d050f213dffb7995fa7feb4d313174e06d6044f` på `feat/nika-demo-v2` (PR #1). Tekstkortene ved Nika og Tyra er nå kompakte og forskjøvet til venstre og høyre på mobil. Profilkortet viser detaljene i to kolonner, hverdagsikonene har riktig størrelse og avstand, og utloggingsdialogen har kortere tekst og to tydelige valg. Lokal utlogging går til forsiden og bevarer profilene. Bunnmeny, én–to linjer i forsidetekstene og alle lokale funksjoner er bevart. [Produksjonstest](https://github.com/minevo93/Nika-dyreapp/actions/runs/38742589449) og skjermbilder dokumenteres i [TESTING.md](TESTING.md).
 
 ## Kjør lokalt
 

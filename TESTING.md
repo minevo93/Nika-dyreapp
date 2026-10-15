@@ -1,6 +1,24 @@
 # Verifisering – Nika demo v2
 
-## Gjeldende produksjon – mobiltekst og bunnmeny, 15. oktober 2026
+## Gjeldende produksjon – kompakte tekstkort, profil og utlogging, 15. oktober 2026
+
+- Live: https://nika-dyreapp.netlify.app/
+- Deploy `6ad0d4085ad29accfc6fce24`, production, ready, publisert kl. 15:24 Oslo. Samme eksisterende Nika-prosjekt, ingen endring av andre prosjekter eller besøksrettigheter.
+- Webkode: `5d050f213dffb7995fa7feb4d313174e06d6044f`, gren `feat/nika-demo-v2`, PR #1. Produksjonstestcommit: `bcd424ab53ba9e5ef85591cf67339fd5ccf345e1`.
+- [Test før publisering](https://github.com/minevo93/Nika-dyreapp/actions/runs/38741981232): success. Alle eksisterende funksjons-, registrerings-, flerprofil-, responsive- og simulerte kontotester besto.
+- [Offentlig produksjonstest](https://github.com/minevo93/Nika-dyreapp/actions/runs/38742589449): success. Publiserte filer matcher kildekoden med SHA-256. Funksjoner, registrering, flere dyr, ti skjermstørrelser og rotasjon besto uten konsollfeil eller manglende appressurser. Chromium 151.0.7922.34 / Playwright 1.62.1 på Ubuntu GitHub Actions, uten Netlify-innlogging. Ikke testet på fysisk telefon eller i Safari/Firefox.
+- Tekstkortene er forskjøvet rundt illustrasjonen uten å dekke ansiktene. Profilens fire opplysninger vises i to kolonner. Hverdagsikoner passer nå i sine 34 px kolonner med egen avstand til teksten. Handlingsknappene er fortsatt minst 44 px.
+- Utloggingsdialogen har en kompakt overskrift og forklarer at lokal lagring beholdes, at dette ikke låser profilene, og at en eventuell tur fortsetter. Utlogging, oppdatering og gjenåpning ble testet uten datatap.
+- Ingen endring av lagringsformat, backend eller innloggingsaktivering i denne utgivelsen.
+
+Skjermbilder fra offentlig produksjon:
+
+- [Tekstkort, stående mobil](docs/screenshots/compact-v7-live-orientation-onboarding-390x844.jpg)
+- [Tekstkort, liggende mobil](docs/screenshots/compact-v7-live-orientation-onboarding-844x390.jpg)
+- [Profil og hverdagsoversikt](docs/screenshots/compact-v7-live-compact-dashboard-mobile.jpg)
+- [Utloggingsdialog](docs/screenshots/compact-v7-live-logout-dialog-mobile.jpg)
+
+## Tidligere produksjon – mobiltekst og bunnmeny, 15. oktober 2026
 
 - Live: https://nika-dyreapp.netlify.app/
 - Deploy `6ad0c1cda037728230eda36a`, production, ready, publisert kl. 14:06 Oslo. Ingen besøksinnlogging/passord.
