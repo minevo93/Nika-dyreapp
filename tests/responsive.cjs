@@ -66,6 +66,26 @@ async function photo(p, name) {
     console.log('PASS_ORIENTATION',width+'x'+height,JSON.stringify(geometry));
     await ctx.close();
   }
+  const rotationContext = await browser.newContext({viewport:{width:390,height:844}});
+  const rotation = await rotationContext.newPage();
+  await rotation.goto(base);
+  await rotation.locator('#answer').fill('Luna');
+  await rotation.locator('#answer').press('Enter');
+  await rotation.setViewportSize({width:844,height:390});
+  assert.match(await rotation.locator('#messages').innerText(),/Hvilken rase/);
+  await rotation.locator('#answer').fill('blandingshund');
+  await rotation.setViewportSize({width:390,height:360});
+  assert.equal(await rotation.locator('.onboard-scene').evaluate(el=>getComputedStyle(el).flexDirection),'column','portrait keyboard must not trigger landscape layout');
+  assert.equal(await rotation.locator('#answer').inputValue(),'blandingshund');
+  await rotation.setViewportSize({width:390,height:844});
+  await rotation.locator('#answer').press('Enter');
+  await rotation.locator('#answer').fill('3 år');
+  await rotation.locator('#answer').press('Enter');
+  await rotation.setViewportSize({width:844,height:390});
+  await rotation.getByRole('button',{name:'Ja, opprett profilen',exact:true}).click();
+  assert.match(await rotation.locator('.welcome-banner h1').innerText(),/Luna/);
+  await rotationContext.close();
+  console.log('PASS_ROTATION draft and typed input survive orientation changes; portrait keyboard keeps column layout');
   assert.deepEqual(errors,[]);
   console.log('PASS_RESPONSIVE 10 viewports, onboarding, dashboard, reload and no console/resource errors');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();if(server)server.kill();});
