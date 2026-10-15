@@ -197,6 +197,9 @@ main {
   margin: 0 auto;
   color: var(--muted);
 }
+.welcome-second-line {
+  display: block;
+}
 .onboard-scene {
   position: relative;
   display: grid;
@@ -1183,8 +1186,8 @@ footer p {
     font-size: 12px;
     max-width: 610px;
   }
-  .welcome-top p br {
-    display: none;
+  .welcome-top .welcome-second-line {
+    display: inline;
   }
   .onboard-scene {
     display: grid;

@@ -16,6 +16,7 @@ python3 -m http.server 4173 --directory public
 
 ## Innhold
 
+- Appnavnet er fortsatt Nika. Nika og Tyra presenteres som to firbente bestevenninner og inspirasjonen bak appen. I stående mobilvisning kommer duoen før chatten; liggende mobil får et kompakt side-ved-side-oppsett.
 - Chatstyrt registrering: navn, rase og alder i år/måneder, stegvis eller `Luna, golden retriever, 3 år`. Oppsummering og korrigering før lagring.
 - Profilredigering og dashboard med faktiske tomtilstander.
 - Én aktiv tur, løpende varighet, tidsfestet tissing/bæsjing, angre og historikk. Varighet lagres i millisekunder; korte turer vises i sekunder. Egne, manuelt navngitte favorittsteder.
@@ -49,11 +50,12 @@ Sikkerhetsheadere inkluderer CSP, blokkering av geolokasjon/kamera/mikrofon og r
 npm ci
 npx playwright install --with-deps chromium
 npm test
+node tests/responsive.cjs
 ```
 
 Testen starter en lokal server og kjører reelle nettleserinteraksjoner med Playwright. `NIKA_TEST_URL=https://... npm test` kan teste en Netlify-forhåndsvisning eller produksjon. Ikke bruk en URL med private data. Tester kjøres i isolerte nettleserkontekster med kun oppdiktede testdata.
 
-GitHub Actions kjører samme test. Resultater og skjermbilder ved 390 og 1440 px lagres som `nika-browser-evidence`; layout kontrolleres også ved 768 px. Mobilbredde er nettleseremulering, ikke en fysisk telefon. Se `tests/e2e.cjs` for faktisk testdekning. Dokumenter utførte resultater separat; konfigurerte tester er ikke i seg selv bevis på beståtte tester.
+GitHub Actions kjører funksjonstestene og en egen mobil-/rotasjonstest. `tests/responsive.cjs` dekker ti visningsstørrelser fra 320 × 568 til 1440 × 1000, inkludert 568 × 320 og 844 × 390 i liggende format. Den kontrollerer bildeplassering, historie, overflyt, berøringsflater, registrering og profil etter oppdatering. En egen sekvens kontrollerer fremdrift gjennom rotasjon og redusert høyde som med et åpent skjermtastatur. Dette er nettleseremulering, ikke en fysisk telefon eller et faktisk iOS-/Android-tastatur. Resultater og skjermbilder lagres som `nika-browser-evidence`. Dokumenter utførte resultater separat; konfigurerte tester er ikke i seg selv bevis på beståtte tester.
 
 ## Begrensninger
 
