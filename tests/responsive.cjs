@@ -75,7 +75,8 @@ async function photo(p, name) {
     assert.equal(await p.locator('main').evaluate(e=>getComputedStyle(e).outlineStyle),'none','navigation must not draw a frame around the page');
     if(width===390 && height===844) {
       await p.locator('.pet-avatar').click();
-      assert.equal(await p.locator('#nav [data-go="profile"]').getAttribute('aria-current'),'page','profile avatar opens editing');
+      assert.equal(await p.locator('#photo-preview').isVisible(),true,'avatar opens photo editing');
+      await p.getByRole('button',{name:'Avbryt',exact:true}).click();
       await p.locator('#nav [data-go="home"]').click();
       await p.locator('[data-action="pets"]').focus();
       await p.keyboard.press('Tab');

@@ -92,6 +92,12 @@ export function createAccount({config, createClient, storage = () => window.loca
     user = {id:verified.data.user.id, email:verified.data.user.email || ''};
     return user;
   }
+  async function access() {
+    if (!user) throw Error("Du må logge inn først.");
+    const {data,error}=await getClient().rpc("nika_account_access");
+    if(error || !["admin","member"].includes(data?.role)) throw Error("Kunne ikke kontrollere tilgangen. Prøv igjen.");
+    return data;
+  }
   async function load() {
     if (!user) throw Error('Du må logge inn først.');
     const {data,error} = await getClient().from('nika_user_state').select('payload,revision').eq('user_id',user.id).maybeSingle();
@@ -136,6 +142,6 @@ export function createAccount({config, createClient, storage = () => window.loca
     if (error) throw Error('Dataene kunne ikke slettes. Prøv igjen.');
     revision = null;
   }
-  return {enabled:config.enabled,providers,signIn,requestEmailCode,verifyEmailCode,restore,load,save,signOut,removeData,
+  return {enabled:config.enabled,providers,signIn,requestEmailCode,verifyEmailCode,restore,access,load,save,signOut,removeData,
     get user(){return user;}, get failed(){return failed;}, on(fn){listeners.add(fn);return()=>listeners.delete(fn);}};
 }

@@ -75,6 +75,7 @@
       validText(d.breed, 100) &&
       validText(d.age, 50) &&
       validText(d.sex, 30) &&
+      window.NikaPhoto.valid(d.photo) &&
       (d.species === undefined || SPECIES.includes(d.species))
     );
   }
@@ -415,6 +416,7 @@
       )
       .join("");
     document.body.classList.toggle('has-bottom-nav', tabs.length > 0);
+    document.querySelector(".header").append(accountButton);
     const tools=$("pet-controls");
     tools.hidden=!d.dog || d.sessionEnded;
     if (!tools.hidden) {
@@ -422,6 +424,7 @@
       tools.innerHTML=d.addingPet
         ? `<span>Registrer et nytt dyr – eksisterende profiler er bevart.</span>${btn("Tilbake til "+html(d.dog.name),"cancel-pet")}${btn("Logg ut","logout")}`
         : `<label class="pet-picker">Valgt dyr<select id="pet-select" aria-label="Velg dyr">${allPets().map(p=>`<option value="${html(p.id)}"${p.id===d.petId?" selected":""}>${html(p.dog.name)} · ${html(p.dog.species || "Hund")}${p.active?" · på tur":""}</option>`).join("")}</select></label><div class="pet-actions">${running?btn(`${running} tur${running>1?"er":""} pågår`,"pets"):""}${btn("Mine dyr", "pets")}${btn("Logg ut","logout")}</div>`;
+      tools.querySelector(".pet-actions")?.prepend(accountButton);
       $("pet-select")?.addEventListener("change",e=>selectPet(e.target.value));
     } else tools.innerHTML="";
   }
@@ -443,7 +446,7 @@
     else dashboardPage();
     if (cloudMode) {
       document.querySelector('.demo-tag').textContent = 'Privat konto';
-      document.querySelector('footer > p').textContent = 'Lagret på kontoen · Bare du har tilgang · Familiedeling kommer senere';
+      $('data-location').textContent = 'Lagret på kontoen · Bare du har tilgang · Familiedeling kommer senere';
       for (const el of document.querySelectorAll('.chat-help')) {
         el.textContent = el.textContent.replace('Opplysningene lagres bare i denne nettleseren.', 'Opplysningene lagres privat på kontoen din.');
       }
@@ -533,7 +536,7 @@
       : d.meals.length ? "Alle planlagte måltider er gitt i dag." : "Ingen måltider planlagt ennå.";
     $("content").innerHTML=
       `<div class="welcome-banner"><div><span class="date">${new Date().toLocaleDateString("nb-NO",{weekday:"long",day:"numeric",month:"long"})}</span><h1>Hei, ${html(dog.name)} ${icon("heart")}</h1><p>Små øyeblikk. En enklere hverdag.<br>Her er oversikten for ${html(dog.name)}.</p>${btn(`${icon("walk")}${d.active?"Fortsett turen":"Start luftetur"}`,d.active?"walks":"startwalk","")}</div><img class="banner-dog" src="assets/nika-dog-duo-v3.webp" alt="" width="620" height="680"></div>
-      <div class="dashboard-grid compact-dashboard"><section class="card profile-card"><div class="card-top"><h3>${icon("paw")}Min beste venn</h3><span class="badge">${html(dog.species || "Hund")}</span></div><button class="pet-avatar" data-action="profile" aria-label="Rediger profilen til ${html(dog.name)}"><strong>${html([...dog.name][0]?.toLocaleUpperCase("nb-NO") || "?")}</strong>${icon("paw")}</button><h2>${html(dog.name)}</h2><p class="muted">Et helt spesielt familiemedlem.</p><dl class="details"><div><dt>Art</dt><dd>${html(dog.species || "Hund")}</dd></div><div><dt>Rase</dt><dd>${html(dog.breed)}</dd></div><div><dt>Alder ved registrering</dt><dd>${html(dog.age)}</dd></div><div><dt>Kjønn</dt><dd>${html(dog.sex)}</dd></div></dl>${btn("Se og rediger profil","profile")}</section>
+      <div class="dashboard-grid compact-dashboard"><section class="card profile-card"><div class="card-top"><h3>${icon("paw")}Min beste venn</h3><span class="badge">${html(dog.species || "Hund")}</span></div><button class="pet-avatar" data-action="photo" aria-label="Rediger profilbildet til ${html(dog.name)}">${dog.photo ? `<img src="${html(dog.photo)}" alt="Profilbilde av ${html(dog.name)}">` : `<strong>${html([...dog.name][0]?.toLocaleUpperCase("nb-NO") || "?")}</strong>${icon("paw")}`}</button><h2>${html(dog.name)}</h2><p class="muted">Et helt spesielt familiemedlem.</p><dl class="details"><div><dt>Art</dt><dd>${html(dog.species || "Hund")}</dd></div><div><dt>Rase</dt><dd>${html(dog.breed)}</dd></div><div><dt>Alder ved registrering</dt><dd>${html(dog.age)}</dd></div><div><dt>Kjønn</dt><dd>${html(dog.sex)}</dd></div></dl>${btn("Se og rediger profil","profile")}</section>
       <section class="card routine-card" aria-label="Samlet hverdagsoversikt"><div class="routine-heading"><div><span class="eyebrow">DET VIKTIGSTE, SAMLET</span><h2>Hverdagen deres</h2></div><span class="badge">For ${html(dog.name)}</span></div>
       ${row(d.active?"På tur nå":"Siste luftetur","walk",walkBody,d.active||last?"walks":"startwalk",d.active?"Åpne aktiv tur":last?"Se turhistorikk":"Start den første turen")}
       ${row("Neste måltid","bowl",mealBody,"meals",m?"Åpne måltider":"Planlegg et måltid","meal-row")}
@@ -544,7 +547,7 @@
   function profile() {
     const x = d.dog;
     $("page-body").innerHTML =
-      `<div class="two-cols">${card("Profilen til " + html(x.name), "paw", `<form id="profile-form">${field(x.species==="Hund"?"Hundens navn":"Dyrets navn", "dog-name", x.name, "text", 60)}<label class="field">Art<select id="dog-species">${SPECIES.map(s=>`<option${s===(x.species || "Hund")?" selected":""}>${s}</option>`).join("")}</select></label>${field("Rase, blandingshund eller ukjent rase", "dog-breed", x.breed)}${field("Alder ved registrering (år eller måneder)", "dog-age", x.age, "text", 50)}<label class="field">Kjønn<select name="dog-sex" id="dog-sex">${["Ikke oppgitt", "Hann", "Hunn"].map((s) => `<option${x.sex === s ? " selected" : ""}>${s}</option>`).join("")}</select></label>${errorSlot}<button class="btn">Lagre profil</button></form>`)}<div class="stack">${card("Deres lille hverdagsbok", "heart", '<p class="muted">Profilen hjelper deg å samle turer, måltider og familie. Alderen er den du oppga ved registrering, og oppdateres manuelt.</p>')}<div class="notice">${cloudMode ? "Dyredata lagres privat på kontoen din. Familiedeling er ikke aktivert ennå." : "Nika er en lokal demo. Dataene deles ikke og er ingen sikkerhetskopi."} Vi gir ikke individuelle helse- eller kostråd.</div></div></div>`;
+      `<div class="two-cols">${card("Profilen til " + html(x.name), "paw", `<div class="photo-profile">${x.photo ? `<img src="${html(x.photo)}" alt="Profilbilde av ${html(x.name)}" width="76" height="76">` : icon("paw")}<div><strong>Profilbilde</strong>${btn(x.photo ? "Endre eller fjern bilde" : "Last opp bilde","photo")}</div></div><form id="profile-form">${field(x.species==="Hund"?"Hundens navn":"Dyrets navn", "dog-name", x.name, "text", 60)}<label class="field">Art<select id="dog-species">${SPECIES.map(s=>`<option${s===(x.species || "Hund")?" selected":""}>${s}</option>`).join("")}</select></label>${field("Rase, blandingshund eller ukjent rase", "dog-breed", x.breed)}${field("Alder ved registrering (år eller måneder)", "dog-age", x.age, "text", 50)}<label class="field">Kjønn<select name="dog-sex" id="dog-sex">${["Ikke oppgitt", "Hann", "Hunn"].map((s) => `<option${x.sex === s ? " selected" : ""}>${s}</option>`).join("")}</select></label>${errorSlot}<button class="btn">Lagre profil</button></form>`)}<div class="stack">${card("Deres lille hverdagsbok", "heart", '<p class="muted">Profilen hjelper deg å samle turer, måltider og familie. Alderen er den du oppga ved registrering, og oppdateres manuelt.</p>')}<div class="notice">${cloudMode ? "Dyredata lagres privat på kontoen din. Familiedeling er ikke aktivert ennå." : "Nika er en lokal demo. Dataene deles ikke og er ingen sikkerhetskopi."} Vi gir ikke individuelle helse- eller kostråd.</div></div></div>`;
     $("profile-form").onsubmit = (e) => {
       e.preventDefault();
       const name = clean($("dog-name").value, 60),
@@ -555,11 +558,37 @@
           "Fyll inn navn, rase og en gyldig alder med år eller måneder.";
         return;
       }
-      d.dog = { name, breed, age: a, sex: $("dog-sex").value, species: $("dog-species").value };
+      d.dog = { ...d.dog, name, breed, age: a, sex: $("dog-sex").value, species: $("dog-species").value };
       save();
       render();
       notify("Profilen er oppdatert.");
     };
+  }
+  async function photoDialog() {
+    const pet=d.dog, petId=d.petId;
+    let img=null, busy=true, removed=false;
+    modal(`<h2 id="dialog-title">Profilbildet til ${html(pet.name)}</h2><p class="muted">Velg utsnittet som passer. Bildet lagres med dette dyret.</p><div class="photo-editor"><canvas id="photo-preview" width="320" height="320" aria-label="Forhåndsvisning av profilbilde"></canvas><label class="field">Velg bilde<input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp"></label><div id="photo-crop"><label class="field">Zoom<input id="photo-zoom" type="range" min="1" max="3" step="0.05" value="1"></label><label class="field">Vannrett<input id="photo-x" type="range" min="0" max="100" value="50"></label><label class="field">Loddrett<input id="photo-y" type="range" min="0" max="100" value="50"></label></div><p id="photo-error" class="error" role="status"></p><div class="form-actions"><button id="photo-save" class="btn" disabled>Lagre bilde</button><button id="photo-remove" class="btn secondary">Fjern bildet</button>${btn("Avbryt","close")}</div></div>`);
+    const canvas=$('photo-preview'), picker=$('photo-file'), saveButton=$('photo-save'), removeButton=$('photo-remove'), status=$('photo-error');
+    const crop=()=>({zoom:Number($('photo-zoom').value),x:Number($('photo-x').value),y:Number($('photo-y').value)});
+    const draw=()=>{picker.disabled=busy;window.NikaPhoto.draw(canvas,img,crop());$('photo-crop').hidden=!img;removeButton.disabled=busy||(!img&&!pet.photo);saveButton.disabled=busy||(!img&&!removed);};
+    for(const id of ['photo-zoom','photo-x','photo-y'])$(id).oninput=draw;
+    picker.onchange=async()=>{
+      if(!picker.files[0])return;
+      busy=true;draw();status.textContent='Åpner bildet …';
+      try { const decoded=await window.NikaPhoto.read(picker.files[0]); if(!canvas.isConnected)return;img=decoded;removed=false;$('photo-zoom').value=1;$('photo-x').value=$('photo-y').value=50;status.textContent=''; }
+      catch(error){if(canvas.isConnected)status.textContent=error.message;}
+      finally{busy=false;if(canvas.isConnected)draw();picker.value='';}
+    };
+    removeButton.onclick=()=>{img=null;removed=true;status.textContent='Bildet fjernes når du velger Lagre bilde.';draw();};
+    saveButton.onclick=()=>{
+      if(busy||blocked||petId!==d.petId)return;
+      try {if(img)pet.photo=window.NikaPhoto.encode(img,crop());else delete pet.photo; save();closeModal();render();notify(cloudMode?'Profilbildet er oppdatert. Lagringsstatus vises øverst.':'Profilbildet er oppdatert.');}
+      catch(error){status.textContent=error.message;}
+    };
+    draw();
+    try {if(pet.photo)img=await window.NikaPhoto.decode(pet.photo);}
+    catch{status.textContent='Det lagrede bildet kunne ikke åpnes. Velg et nytt bilde.';}
+    busy=false;if(canvas.isConnected)draw();
   }
   function walks() {
     const active = d.active;
@@ -767,6 +796,7 @@
     const b = e.target.closest("button");
     if (!b) return;
     const accountAction = b.dataset.action;
+    if(accountAction === "photo") { if(!blocked) photoDialog(); return; }
     if (["account","google","azure","cloud-logout","cloud-discard","cloud-discard-confirm","cloud-reset","cloud-reset-confirm"].includes(accountAction)) {
       if (e.detail <= 1) handleAccountAction(accountAction, b);
       return;
@@ -1076,7 +1106,17 @@
   });
   async function accountDialog() {
     if (cloudMode) {
-      modal(`<h2 id="dialog-title">Min konto</h2><p>${html(account.user?.email || 'Innlogget bruker')}</p><p>Vanlig brukertilgang. Dine dyr og din historikk er private.</p>${blocked ? '<p class="notice">Du har ulagrede endringer. Eksporter dem før du forlater siden.</p>' : ''}<div class="form-actions">${btn("Logg ut","cloud-logout","")}${btn("Eksporter Nika-data","export")}${btn("Lukk","close")}</div><p id="account-error" class="error" role="alert"></p>`);
+      modal(`<h2 id="dialog-title">Min konto</h2><p>${html(account.user?.email || 'Innlogget bruker')}</p><p id="account-role">Dine dyr og din historikk er private.</p><section id="admin-summary" hidden></section>${blocked ? '<p class="notice">Du har ulagrede endringer. Eksporter dem før du forlater siden.</p>' : ''}<div class="form-actions">${btn("Logg ut","cloud-logout","")}${btn("Eksporter Nika-data","export")}${btn("Lukk","close")}</div><p id="account-error" class="error" role="alert"></p>`);
+      const roleEl=$('account-role'), summary=$('admin-summary');
+      try {
+        const access=await account.access();
+        if(!roleEl.isConnected)return;
+        roleEl.textContent=access.role==='admin' ? 'Administrator for Nika' : 'Vanlig brukertilgang. Dine dyr og din historikk er private.';
+        if(access.role==='admin') {
+          summary.hidden=false;
+          summary.innerHTML=`<h3>Administrer Nika</h3><dl class="details"><div><dt>Registrerte kontoer</dt><dd>${html(access.accounts)}</dd></div><div><dt>Kontoer med lagrede dyr</dt><dd>${html(access.savedAccounts)}</dd></div></dl><p class="muted">Kun din konto har administratortilgang. Oversikten viser antall, ikke andre brukeres private profiler.</p>`;
+        }
+      } catch { if(roleEl.isConnected) roleEl.textContent='Kunne ikke kontrollere kontorollen. Lukk og prøv igjen.'; }
       return;
     }
     modal(`<h2 id="dialog-title">Velkommen til Nika</h2><p>Logg inn eller opprett en privat konto.</p><div id="email-login" hidden></div><div class="account-options"><button class="btn secondary" data-action="google" hidden>Fortsett med Google</button><button class="btn secondary" data-action="azure" hidden>Fortsett med Microsoft</button></div><p id="account-error" role="status">Kontrollerer tilgjengelig innlogging …</p><p class="muted">Lokale demodata lastes ikke opp automatisk. Kontoen gir vanlig brukertilgang.</p><a class="text-button" href="mailto:support.nika@miveno.no">Kontakt Nika-support</a>${btn("Lukk","close")}`);
