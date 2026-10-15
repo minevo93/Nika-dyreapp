@@ -1507,3 +1507,11 @@ dialog > #dialog-content > .muted { font-size: 13px; line-height: 1.5; }
 #email-login input { width:100%; min-width:0; }
 #login-code { letter-spacing:.18em; font-variant-numeric:tabular-nums; }
 footer > a.text-button { display:inline-flex; align-items:center; min-height:44px; }
+
+/* Account entry keeps the header within tablet and mobile widths. */
+.header { flex-wrap: wrap; }
+#account-button { flex-shrink: 0; }
+@media (min-width: 761px) and (max-width: 1100px) {
+  .header #nav:not(:empty) { order: 4; width: 100%; justify-content: center; }
+  .header .demo-tag { margin-left: auto; }
+}

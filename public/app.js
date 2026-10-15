@@ -1142,7 +1142,7 @@
     }
   }
   async function boot() {
-    if (!account?.enabled) { render(); return; }
+    if (!account?.enabled || !storageAvailable) { render(); return; }
     $('content').innerHTML = '<p role="status" class="notice">Åpner Nika …</p>';
     account.on((type,error) => {
       if (type === 'saved') { storageIssue='Lagret på kontoen.'; showStorage(); }
