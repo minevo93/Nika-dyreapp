@@ -6,6 +6,7 @@ const { spawn } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const evidence = path.join(root, 'evidence');
 const base = process.env.NIKA_TEST_URL || 'http://127.0.0.1:4173';
+const currentLayout = !process.env.NIKA_TEST_URL || process.env.NIKA_EXPECT_MOBILE_V6 === '1';
 const sizes = [[320,568],[390,844],[430,932],[568,320],[667,375],[844,390],[932,430],[768,1024],[1024,768],[1440,1000]];
 let server, browser;
 const errors = [];
@@ -35,7 +36,7 @@ async function photo(p, name) {
     await p.locator('.dog-scene > img').evaluate(img=>Promise.all(img.getAnimations().map(animation=>animation.finished)));
     assert.equal(await p.title(),'Nika – Dyreappen');
     assert.match(await p.locator('.duo-story').innerText(),/Møt Nika og Tyra/);
-    if (!process.env.NIKA_TEST_URL) {
+    if (currentLayout) {
       assert.equal(await p.locator('.note-one').isVisible(),true,'family text retained on every screen');
       assert.equal(await p.locator('.note-two').isVisible(),true,'walk text retained on every screen');
     }
@@ -44,7 +45,7 @@ async function photo(p, name) {
       return {image:rect('.dog-scene > img'),chat:rect('.chat'),story:rect('.duo-story'),overflow:document.documentElement.scrollWidth>innerWidth};
     });
     assert.equal(geometry.overflow,false,'horizontal overflow '+width+'x'+height);
-    if (!process.env.NIKA_TEST_URL) {
+    if (currentLayout) {
       const copy = await p.evaluate(() => {
         const hero=document.querySelector('.welcome-top');
         return {order:[...hero.children].map(e=>e.tagName),lines:[...hero.children].map(e=>e.getBoundingClientRect().height/parseFloat(getComputedStyle(e).lineHeight))};
@@ -73,7 +74,7 @@ async function photo(p, name) {
     await p.locator('.banner-dog').evaluate(img=>img.decode());
     assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'dashboard overflow');
     const banner=await p.evaluate(()=>{const b=document.querySelector('.welcome-banner').getBoundingClientRect();const i=document.querySelector('.banner-dog').getBoundingClientRect();return {br:b.right,ir:i.right,iy:i.y,by:b.y};});
-    if (!process.env.NIKA_TEST_URL && (width<=760 || (width>height && width<=1024 && height<=560))) {
+    if (currentLayout && (width<=760 || (width>height && width<=1024 && height<=560))) {
       const menu=await p.locator('#nav').evaluate(e=>({position:getComputedStyle(e).position,bottom:e.getBoundingClientRect().bottom,top:e.getBoundingClientRect().top}));
       assert.equal(menu.position,'fixed');assert.ok(Math.abs(menu.bottom-height)<2,'menu at viewport bottom');assert.ok(menu.top>=height-100,'compact menu');
       assert.equal(await p.locator('#nav button').count(),5);

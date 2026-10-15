@@ -13,12 +13,14 @@ jobs:
     timeout-minutes: 10
     env:
       NIKA_TEST_URL: https://nika-dyreapp.netlify.app
+      NIKA_EXPECT_MOBILE_V6: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm ci
+      - run: node tests/public-release.cjs
       - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: node tests/responsive.cjs
