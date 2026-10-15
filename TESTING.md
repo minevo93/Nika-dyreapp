@@ -1,6 +1,28 @@
 # Verifisering – Nika demo v2
 
-## Offentlig produksjon – verifisert
+## Gjeldende produksjon – referansebasert Nika-maskot
+
+**Live:** https://nika-dyreapp.netlify.app/
+
+- Deploy `6ad0a37f11d74bb82c0ff615`, **ready**, produksjon på eksisterende Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Publisert via Netlify Drop 15. oktober 2026 kl. 11:57 Oslo-tid. Ingen andre prosjekter eller innstillinger er endret.
+- Publiserte webfiler: commit `0da67cbbca41f33957d44145a763c6051e990bb3`. Ny maskot brukes i registrering, banner og profilkort. WebP 930 × 1020, 292 560 byte, alfakanal kontrollert (min 0, maks 255). Originalfotoene er ikke publisert eller lagt i GitHub.
+- Forhåndsvisning: **19/19** bestått før opplasting: [kjøring 38716487697](https://github.com/minevo93/Nika-dyreapp/actions/runs/38716487697).
+- Offentlig produksjon: **20/20** bestått uten Netlify-innlogging: [kjøring 38716880801](https://github.com/minevo93/Nika-dyreapp/actions/runs/38716880801), testcommit `6c8aeb02371aa0e6b6defa0c3416645e30c4f15f`. Den ekstra kontrollen dekoder den nye WebP-filen og kontrollerer ressursnavn og bildestørrelse.
+- Chromium 151.0.7922.34 / Playwright 1.62.1 på Ubuntu GitHub Actions. Alle eksisterende funksjons-, lagrings-, dato-, fokus- og bevegelsestester kjørt på nytt. Layout ved 390, 768 og 1440 px. Ingen JavaScript-/konsollfeil eller manglende ressurser. Ingen fysisk telefon, Safari eller Firefox testet.
+- Visuell gjennomgang av registrering og dashboard på desktop og mobilbredde. Den offentlige appen er også åpnet i Chrome, og riktig bilde er kontrollert som ferdig lastet med naturlig bredde 930 px.
+- Første ZIP-opplasting viste en tilkoblingsfeil og ble ikke publisert. Ett nytt forsøk lyktes. Den tidligere produksjonen var tilgjengelig hele tiden. Netlify bekrefter nå det nye deployet som publisert og behandler sikkerhetsheaderne uten feil.
+- Fortsatt lokal demo uten backend, generell AI, GPS, deling, aktiv QR-ID eller butikk. Ingen nye kjente funksjonsfeil innen testdekningen. Git-koblingen er fortsatt ikke aktiv; PR #1 står åpen og main er uendret.
+
+Faktiske skjermbilder fra denne produksjonstesten:
+
+| Skjerm | Desktop (1440 px) | Mobilbredde (390 px) |
+| --- | --- | --- |
+| Førstegangsopplevelse | [Registrering](docs/screenshots/reference-v2-live-onboarding-desktop.jpg) | [Registrering](docs/screenshots/reference-v2-live-onboarding-mobile.jpg) |
+| Dashboard | [Dashboard](docs/screenshots/reference-v2-live-dashboard-desktop.jpg) | [Dashboard](docs/screenshots/reference-v2-live-dashboard-mobile.jpg) |
+
+Mobilbildet av registrering viser også den fokuserte «Hopp til innhold»-lenken fra tastaturtesten. Dette er en bevisst tilgjengelighetstilstand, ikke et permanent overlegg.
+
+## Tidligere offentlig produksjon – før referansebildene
 
 **Live:** https://nika-dyreapp.netlify.app/
 

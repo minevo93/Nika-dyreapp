@@ -4,7 +4,7 @@ En norsk, lokal webdemo for hundehverdagen. Vanlig HTML, CSS og JavaScript, uten
 
 **Live og offentlig testet:** https://nika-dyreapp.netlify.app/
 
-Produksjonsdeploy `6ad08a19fec92ad38a193f62` er `ready`, publisert 15. oktober 2026 via Netlify Drop til det eksisterende Nika-prosjektet. Alle 19 testgruppene besto mot HTTPS-adressen i en ren Chromium-nettleser uten Netlify-innlogging. Se [produksjonstesten](https://github.com/minevo93/Nika-dyreapp/actions/runs/38703780099) og [TESTING.md](TESTING.md).
+Produksjonsdeploy `6ad0a37f11d74bb82c0ff615` er `ready`, publisert 15. oktober 2026 via Netlify Drop til det eksisterende Nika-prosjektet. Appen har nå en illustrert Nika-maskot basert på brukerens fire referansebilder. Alle 20 testgruppene besto mot HTTPS-adressen i en ren Chromium-nettleser uten Netlify-innlogging. Se [produksjonstesten](https://github.com/minevo93/Nika-dyreapp/actions/runs/38716880801) og [TESTING.md](TESTING.md).
 
 ## Kjør lokalt
 
@@ -33,7 +33,7 @@ Ingen analyse, nettverks-API-er, eksterne fonter, posisjonsinnsamling eller hemm
 
 ## Netlify
 
-Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publisert appkode og `_headers` tilsvarer commit `618eba1485087c8cc596a327eb6f4f91ee22877c` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
+Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `0da67cbbca41f33957d44145a763c6051e990bb3` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
 
 Netlifys Developer settings er kontrollert og viser **Current repository: Not linked**. Dette er derfor et manuelt produksjonsdeploy, ikke automatisk Git-publisering. Ingen konto- eller repository-tilgang er utvidet for å koble Git. Før en eventuell senere Git-kobling med produksjonsgren `main` må den ferdige koden merges med nødvendig godkjenning, slik at en eldre main-versjon ikke erstatter demoen.
 
@@ -63,4 +63,4 @@ Designreferansefilen var ikke tilgjengelig i arbeidsmiljøet under implementerin
 
 ## Utført kvalitetssikring
 
-Se [TESTING.md](TESTING.md) for 19 beståtte nettlesertestgrupper mot offentlig produksjon, faktisk miljø og mobil-/desktopskjermbilder. Ingen JavaScript-feil, konsollfeil eller manglende appressurser ble registrert i produksjonstesten. Ikke testet på fysisk telefon, Firefox eller Safari.
+Se [TESTING.md](TESTING.md) for 20 beståtte nettlesertestgrupper mot offentlig produksjon, faktisk miljø og mobil-/desktopskjermbilder. Ingen JavaScript-feil, konsollfeil eller manglende appressurser ble registrert i produksjonstesten. Ikke testet på fysisk telefon, Firefox eller Safari.
