@@ -43,6 +43,14 @@ async function photo(p, name) {
       return {image:rect('.dog-scene > img'),chat:rect('.chat'),story:rect('.duo-story'),overflow:document.documentElement.scrollWidth>innerWidth};
     });
     assert.equal(geometry.overflow,false,'horizontal overflow '+width+'x'+height);
+    if (!process.env.NIKA_TEST_URL) {
+      const copy = await p.evaluate(() => {
+        const hero=document.querySelector('.welcome-top');
+        return {order:[...hero.children].map(e=>e.tagName),lines:[...hero.children].map(e=>e.getBoundingClientRect().height/parseFloat(getComputedStyle(e).lineHeight))};
+      });
+      assert.deepEqual(copy.order,['H1','P','SPAN'],'requested title/copy/family order');
+      assert.ok(copy.lines.every(n=>n<=2.1),'every hero text fits at most two lines '+width+'x'+height+': '+copy.lines);
+    }
     assert.ok(geometry.image.x>=-1 && geometry.image.right<=width+1,'dog image fits width');
     assert.ok(geometry.story.x>=-1 && geometry.story.right<=width+1,'story fits width');
     if(width<=760 && height>width) {
@@ -64,6 +72,12 @@ async function photo(p, name) {
     await p.locator('.banner-dog').evaluate(img=>img.decode());
     assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'dashboard overflow');
     const banner=await p.evaluate(()=>{const b=document.querySelector('.welcome-banner').getBoundingClientRect();const i=document.querySelector('.banner-dog').getBoundingClientRect();return {br:b.right,ir:i.right,iy:i.y,by:b.y};});
+    if (!process.env.NIKA_TEST_URL && (width<=760 || (width>height && width<=1024 && height<=560))) {
+      const menu=await p.locator('#nav').evaluate(e=>({position:getComputedStyle(e).position,bottom:e.getBoundingClientRect().bottom,top:e.getBoundingClientRect().top}));
+      assert.equal(menu.position,'fixed');assert.ok(Math.abs(menu.bottom-height)<2,'menu at viewport bottom');assert.ok(menu.top>=height-100,'compact menu');
+      assert.equal(await p.locator('#nav button').count(),5);
+      await p.locator('#nav [data-go="meals"]').click();assert.equal(await p.locator('#nav [data-go="meals"]').getAttribute('aria-current'),'page');await p.locator('#nav [data-go="home"]').click();
+    }
     assert.ok(banner.ir<=banner.br+1,'both dogs within banner right edge');
     await p.reload();
     assert.match(await p.locator('.welcome-banner h1').innerText(),/Luna/);

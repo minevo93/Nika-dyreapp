@@ -10,6 +10,7 @@ Arbeidsgren `feat/nika-demo-v2`. **Ikke aktivert eller publisert med ekte innlog
 - Google og Microsoft (`azure`) via Supabase SDK 2.117.3, PKCE. Microsoft ber bare om identitets-/e-postopplysninger, ikke innboks eller kontakter.
 - Innlogging, utlogging til forsiden, isolerte kontodata, synlige lagringsfeil, eksport og sletting av dyredata. Gamle lokale demodata lastes ikke opp automatisk.
 - Syv testgrupper for kontokoden med simulert SDK. Dette beviser ikke at ekte Google-/Microsoft-innlogging virker.
+- Nettlesertest av kontoarbeidsflyt med simulert tjeneste besto i Chromium via [GitHub Actions](https://github.com/minevo93/Nika-dyreapp/actions/runs/38730846008): kontodyr atskilt fra lokale dyr, profilredigering/oppdatering, ærlig familietekst, Microsoft-valg og utlogging til forsiden. De eksisterende funksjons- og layouttestene besto også. Ingen ekte OAuth-pålogging er testet.
 - Supabase sikkerhetskontroll etter migreringene: ingen merknader. Plattformens automatiske RLS-trigger hadde offentlige EXECUTE-rettigheter; disse er fjernet kun i Nika-prosjektet. Selve triggeren forblir aktiv.
 
 ## Det som blokkerer aktivering
