@@ -54,3 +54,7 @@ GitHub Actions kjører samme test. Resultater og skjermbilder ved 390 og 1440 px
 Ingen generell AI-chat, GPS/kart/ruter, brukerkontoer, database, enhetsdeling, aktiv QR-ID/finner-side, butikk, betaling eller individuelle helse-/kostråd. QR og butikk er skjult til de har fungerende arbeidsflyter. Profilbildet er en original SVG-illustrasjon laget til prosjektet, ikke en modell av brukerens faktiske hund. Alle illustrasjoner og ikoner i public/assets er laget for Nika og kan brukes med prosjektet.
 
 Designreferansefilen var ikke tilgjengelig i arbeidsmiljøet under implementeringen; den skriftlige retningen er fulgt. Nettleser- og publiseringsstatus må fremgå av leveransen.
+
+## Utført kvalitetssikring
+
+Se [TESTING.md](TESTING.md) for 17 beståtte nettlesertestgrupper, faktisk miljø, mobil-/desktopskjermbilder og den konkrete gjenværende Netlify-blokkeringen. Koden er testet; offentlig publisering er foreløpig ikke verifisert.
