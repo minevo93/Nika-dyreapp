@@ -5,6 +5,8 @@ on:
     paths:
       - .github/workflows/live-test.yml
       - tests/**
+      - public/**
+      - src/**
 permissions:
   contents: read
 jobs:
