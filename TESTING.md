@@ -1,6 +1,23 @@
 # Verifisering – Nika demo v2
 
-## Gjeldende produksjon – referansebasert Nika-maskot
+## Gjeldende produksjon – Nika og den hvite hunden
+
+- Live: https://nika-dyreapp.netlify.app/
+- Deploy `6ad0a678d17c33ffa3e78a71`, **ready**, publisert 15. oktober 2026 kl. 12:10 Oslo-tid. Samme eksisterende Nika-prosjekt og Site ID; ingen endringer i andre prosjekter eller innstillinger.
+- Publiserte webfiler: `318dc798ad1db2e6a2604c76b261dafb77571be2`. Duoen er brukerens godkjente illustrasjon, med den hvite hunden ved siden av Nika. Brukes i registrering og dashboardbanner; profilkortet og lokale profiler endres ikke. Originalfotoene er ikke publisert.
+- Optimalisert WebP: 930 × 1020, 228 384 byte, ekte alfa kontrollert fra 0 til 255. Merker rundt hundene er flyttet for å holde ansiktene synlige. Mobilbanneret viser begge hundene uten å klippe ansiktene.
+- Forhåndstest **20/20**: [38718149835](https://github.com/minevo93/Nika-dyreapp/actions/runs/38718149835).
+- Offentlig produksjon **20/20**: [38718441471](https://github.com/minevo93/Nika-dyreapp/actions/runs/38718441471), testcommit `9d9fee54e70cc45d586826b8fe803aba1b723b77`. Tester krever duoressursen i registrering og banner, og fortsatt enkeltillustrasjon på profilkortet.
+- Chromium 151.0.7922.34 / Playwright 1.62.1 på Ubuntu-runner, isolerte kontekster uten Netlify-innlogging. Hele funksjons- og lagringstesten kjørt på nytt, med layout 390/768/1440, tastaturfokus og redusert bevegelse. Ingen konsoll-/JavaScript-feil eller manglende ressurser. Ikke fysisk telefon, Safari eller Firefox.
+- Offentlig app også åpnet i Chrome, begge hundene visuelt bekreftet ferdig lastet. Ingen nye kjente funksjonsfeil innen testdekningen. Fortsatt lokal demo, manuell Netlify-publisering, PR #1 åpen og main uendret.
+
+| Skjerm | Desktop | Mobilbredde |
+| --- | --- | --- |
+| Registrering | [1440 px](docs/screenshots/duo-v3-live-onboarding-desktop.jpg) | [390 px](docs/screenshots/duo-v3-live-onboarding-mobile.jpg) |
+| Dashboard | [1440 px](docs/screenshots/duo-v3-live-dashboard-desktop.jpg) | [390 px](docs/screenshots/duo-v3-live-dashboard-mobile.jpg) |
+
+
+## Tidligere produksjon – referansebasert Nika-maskot
 
 **Live:** https://nika-dyreapp.netlify.app/
 

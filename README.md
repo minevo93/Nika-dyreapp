@@ -4,7 +4,7 @@ En norsk, lokal webdemo for hundehverdagen. Vanlig HTML, CSS og JavaScript, uten
 
 **Live og offentlig testet:** https://nika-dyreapp.netlify.app/
 
-Produksjonsdeploy `6ad0a37f11d74bb82c0ff615` er `ready`, publisert 15. oktober 2026 via Netlify Drop til det eksisterende Nika-prosjektet. Appen har nå en illustrert Nika-maskot basert på brukerens fire referansebilder. Alle 20 testgruppene besto mot HTTPS-adressen i en ren Chromium-nettleser uten Netlify-innlogging. Se [produksjonstesten](https://github.com/minevo93/Nika-dyreapp/actions/runs/38716880801) og [TESTING.md](TESTING.md).
+Produksjonsdeploy `6ad0a678d17c33ffa3e78a71` er `ready`, publisert 15. oktober 2026 via Netlify Drop til det eksisterende Nika-prosjektet. Nika og den hvite hunden sitter nå sammen i velkomstbildet og dashboardbanneret, basert på brukerens referansebilder og godkjente illustrasjon. Profilkortet beholder Nika alene; ingen ekstra hund legges til brukerdata. Alle 20 testgruppene besto mot HTTPS-adressen i en ren Chromium-nettleser uten Netlify-innlogging. Se [produksjonstesten](https://github.com/minevo93/Nika-dyreapp/actions/runs/38718441471) og [TESTING.md](TESTING.md).
 
 ## Kjør lokalt
 
@@ -33,7 +33,7 @@ Ingen analyse, nettverks-API-er, eksterne fonter, posisjonsinnsamling eller hemm
 
 ## Netlify
 
-Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `0da67cbbca41f33957d44145a763c6051e990bb3` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
+Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `318dc798ad1db2e6a2604c76b261dafb77571be2` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
 
 Netlifys Developer settings er kontrollert og viser **Current repository: Not linked**. Dette er derfor et manuelt produksjonsdeploy, ikke automatisk Git-publisering. Ingen konto- eller repository-tilgang er utvidet for å koble Git. Før en eventuell senere Git-kobling med produksjonsgren `main` må den ferdige koden merges med nødvendig godkjenning, slik at en eldre main-versjon ikke erstatter demoen.
 
@@ -59,7 +59,7 @@ GitHub Actions kjører samme test. Resultater og skjermbilder ved 390 og 1440 px
 
 Ingen generell AI-chat, GPS/kart/ruter, brukerkontoer, database, enhetsdeling, aktiv QR-ID/finner-side, butikk, betaling eller individuelle helse-/kostråd. QR og butikk er skjult til de har fungerende arbeidsflyter. Nika-maskoten er en AI-generert illustrasjon basert på fire referansebilder brukeren har levert. Den er en merkevareillustrasjon, ikke et profilfoto av hver registrerte hund eller en interaktiv 3D-modell. Bare den avledede, optimaliserte WebP-filen publiseres; originalfotoene og bakgrunnene er ikke inkludert. Se [illustrasjonens kilde og prompt](docs/mascot-reference-v2.md). Den tidligere SVG-illustrasjonen er beholdt som en eldre ressurs.
 
-Designreferansefilen var ikke tilgjengelig i arbeidsmiljøet under implementeringen; den skriftlige retningen er fulgt. Nettleser- og publiseringsstatus må fremgå av leveransen.
+Den hvite hunden er lagt til i en egen transparent [duoillustrasjon](docs/mascot-duo-v3.md), med samme stil som Nika. Tidligere illustrasjoner er bevart. Kun avledede illustrasjoner publiseres, aldri de brukerleverte originalfotoene. Designreferansefilen var ikke tilgjengelig under første implementering; den skriftlige retningen ble fulgt.
 
 ## Utført kvalitetssikring
 
