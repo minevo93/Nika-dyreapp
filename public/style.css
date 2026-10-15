@@ -1502,6 +1502,7 @@ dialog > #dialog-content > .muted { font-size: 13px; line-height: 1.5; }
 
 /* Compact email sign-in, with normal keyboard and mobile autofill support. */
 #email-login form { display:grid; gap:12px; margin-block:16px; }
+#email-login[hidden], .account-options [hidden] { display:none; }
 #email-login p { margin:0; overflow-wrap:anywhere; }
 #email-login input { width:100%; min-width:0; }
 #login-code { letter-spacing:.18em; font-variant-numeric:tabular-nums; }
