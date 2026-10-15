@@ -350,8 +350,8 @@
     toastTimer = setTimeout(() => ($("toast").textContent = ""), 4000);
   }
   const paths = {
-    paw: "M6 16c1-6 7-7 10-2 2 2 5 4 3 6-2 2-5-1-7-1s-5 2-7 0c-1-1 0-2 1-3M4 9v1m5-5v2m6-2v2m5 3v1",
-    walk: "M4 18c5-2 2-8 7-8s1 8 7 8h3M5 5h.01M18 4l1 3 3 1-3 1-1 3-1-3-3-1 3-1z",
+    paw: "M8 14c1-3 7-3 8 0 1 2 4 4 2 6-2 2-4-1-6-1s-4 3-6 1c-2-2 1-4 2-6zM8 4a2 3 0 1 0 0 6 2 3 0 0 0 0-6zm8 0a2 3 0 1 0 0 6 2 3 0 0 0 0-6zM3 9a1.5 2.5 0 1 0 0 5 1.5 2.5 0 0 0 0-5zm18 0a1.5 2.5 0 1 0 0 5 1.5 2.5 0 0 0 0-5z",
+    walk: "M5 20h9a4 4 0 0 0 0-8H9a4 4 0 0 1 0-8h7M16 2l3 2-3 2M5 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4",
     bowl: "M3 12h18c0 7-3 9-9 9s-9-2-9-9zM8 4v3m4-4v4m4-3v3",
     family:
       "M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm8-1a3 3 0 1 0 0-6M2 21v-2a6 6 0 0 1 12 0v2m3-6a5 5 0 0 1 5 5v1",
@@ -363,11 +363,17 @@
     drop: "M12 2S4 11 4 16a8 8 0 0 0 16 0c0-5-8-14-8-14z",
     check: "M5 12l4 4L19 6",
     arrow: "M4 12h16m-6-6 6 6-6 6",
+    home: "M3 10l9-7 9 7v11h-6v-7H9v7H3z",
+    plus: "M12 5v14M5 12h14",
+    edit: "M15 4l5 5M4 20l5-1L21 7a2 2 0 0 0-4-4L5 15z",
+    logout: "M9 3H4v18h5M10 12h11m-4-4 4 4-4 4",
+    close: "M6 6l12 12M18 6 6 18",
   };
   const icon = (n) =>
-    `<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="${paths[n] || paths.paw}"/></svg></span>`;
+    `<span class="icon icon-${n}" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="${paths[n] || paths.paw}"/></svg></span>`;
+  const actionIcons = {pets:'paw', logout:'logout', profile:'edit', 'add-pet':'plus', confirm:'check', correct:'edit', close:'close', 'logout-confirm':'logout', resume:'paw'};
   const btn = (label, action, cls = "secondary", id = "") =>
-    `<button class="btn ${cls}" data-action="${action}"${id ? ` data-id="${html(id)}"` : ""}>${label}</button>`;
+    `<button class="btn ${cls}" data-action="${action}"${id ? ` data-id="${html(id)}"` : ""}>${actionIcons[action]?icon(actionIcons[action]):''}${label}</button>`;
   const card = (title, ico, body, cls = "", extra = "") =>
     `<section class="card ${cls}"><div class="card-top"><h3>${icon(ico)}${title}</h3>${extra}</div>${body}</section>`;
   const empty = (s) => `<p class="empty">${s}</p>`;
@@ -405,7 +411,7 @@
     $("nav").innerHTML = tabs
       .map(
         ([p, n]) =>
-          `<button data-go="${p}"${p === page ? ' aria-current="page"' : ""}>${n}</button>`,
+          `<button data-go="${p}"${p === page ? ' aria-current="page"' : ""}>${icon({home:'home',walks:'walk',meals:'bowl',family:'family',profile:'paw'}[p])}<span>${n}</span></button>`,
       )
       .join("");
     document.body.classList.toggle('has-bottom-nav', tabs.length > 0);
@@ -526,8 +532,8 @@
     const mealBody=m ? `<strong>${html(m.time)}</strong> · ${html(m.food)} · ikke gitt i dag`
       : d.meals.length ? "Alle planlagte måltider er gitt i dag." : "Ingen måltider planlagt ennå.";
     $("content").innerHTML=
-      `<div class="welcome-banner"><div><span class="date">${new Date().toLocaleDateString("nb-NO",{weekday:"long",day:"numeric",month:"long"})}</span><h1>Hei, ${html(dog.name)} <span aria-hidden="true">♡</span></h1><p>Små øyeblikk. En enklere hverdag.<br>Her er oversikten for ${html(dog.name)}.</p>${btn(`${icon("walk")}${d.active?"Fortsett turen":"Start luftetur"}`,d.active?"walks":"startwalk","")}</div><img class="banner-dog" src="assets/nika-dog-duo-v3.webp" alt="" width="620" height="680"></div>
-      <div class="dashboard-grid compact-dashboard"><section class="card profile-card"><div class="card-top"><h3>${icon("paw")}Min beste venn</h3><span class="badge">${html(dog.species || "Hund")}</span></div><div class="pet-avatar" role="img" aria-label="Profilinitial for ${html(dog.name)}, ikke et foto"><strong>${html([...dog.name][0]?.toLocaleUpperCase("nb-NO") || "?")}</strong>${icon("paw")}</div><h2>${html(dog.name)}</h2><p class="muted">Et helt spesielt familiemedlem.</p><dl class="details"><div><dt>Art</dt><dd>${html(dog.species || "Hund")}</dd></div><div><dt>Rase</dt><dd>${html(dog.breed)}</dd></div><div><dt>Alder ved registrering</dt><dd>${html(dog.age)}</dd></div><div><dt>Kjønn</dt><dd>${html(dog.sex)}</dd></div></dl>${btn("Se og rediger profil","profile")}</section>
+      `<div class="welcome-banner"><div><span class="date">${new Date().toLocaleDateString("nb-NO",{weekday:"long",day:"numeric",month:"long"})}</span><h1>Hei, ${html(dog.name)} ${icon("heart")}</h1><p>Små øyeblikk. En enklere hverdag.<br>Her er oversikten for ${html(dog.name)}.</p>${btn(`${icon("walk")}${d.active?"Fortsett turen":"Start luftetur"}`,d.active?"walks":"startwalk","")}</div><img class="banner-dog" src="assets/nika-dog-duo-v3.webp" alt="" width="620" height="680"></div>
+      <div class="dashboard-grid compact-dashboard"><section class="card profile-card"><div class="card-top"><h3>${icon("paw")}Min beste venn</h3><span class="badge">${html(dog.species || "Hund")}</span></div><button class="pet-avatar" data-action="profile" aria-label="Rediger profilen til ${html(dog.name)}"><strong>${html([...dog.name][0]?.toLocaleUpperCase("nb-NO") || "?")}</strong>${icon("paw")}</button><h2>${html(dog.name)}</h2><p class="muted">Et helt spesielt familiemedlem.</p><dl class="details"><div><dt>Art</dt><dd>${html(dog.species || "Hund")}</dd></div><div><dt>Rase</dt><dd>${html(dog.breed)}</dd></div><div><dt>Alder ved registrering</dt><dd>${html(dog.age)}</dd></div><div><dt>Kjønn</dt><dd>${html(dog.sex)}</dd></div></dl>${btn("Se og rediger profil","profile")}</section>
       <section class="card routine-card" aria-label="Samlet hverdagsoversikt"><div class="routine-heading"><div><span class="eyebrow">DET VIKTIGSTE, SAMLET</span><h2>Hverdagen deres</h2></div><span class="badge">For ${html(dog.name)}</span></div>
       ${row(d.active?"På tur nå":"Siste luftetur","walk",walkBody,d.active||last?"walks":"startwalk",d.active?"Åpne aktiv tur":last?"Se turhistorikk":"Start den første turen")}
       ${row("Neste måltid","bowl",mealBody,"meals",m?"Åpne måltider":"Planlegg et måltid","meal-row")}
