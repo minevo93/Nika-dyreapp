@@ -1,5 +1,7 @@
 # Nika – Dyreappen
 
+**Pågående kontoarbeid (ikke publisert):** Google og Microsoft/Hotmail er valgt. Privat database og kontokode er klargjort på arbeidsgrenen, med innlogging deaktivert til OAuth-appene er registrert og ekte innlogging er testet. Se [status og aktivering](docs/account-setup.md). GPS og familiedeling gjenstår. Produksjonsbeskrivelsen nedenfor gjelder fortsatt den publiserte lokale demoen.
+
 En norsk, lokal webdemo for dyrehverdagen. Vanlig HTML, CSS og JavaScript, uten rammeverk, byggesteg eller backend.
 
 **Live og offentlig testet:** https://nika-dyreapp.netlify.app/

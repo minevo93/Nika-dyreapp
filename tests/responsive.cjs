@@ -34,6 +34,10 @@ async function photo(p, name) {
     await p.locator('.dog-scene > img').evaluate(img=>Promise.all(img.getAnimations().map(animation=>animation.finished)));
     assert.equal(await p.title(),'Nika – Dyreappen');
     assert.match(await p.locator('.duo-story').innerText(),/Møt Nika og Tyra/);
+    if (!process.env.NIKA_TEST_URL) {
+      assert.equal(await p.locator('.note-one').isVisible(),true,'family text retained on every screen');
+      assert.equal(await p.locator('.note-two').isVisible(),true,'walk text retained on every screen');
+    }
     const geometry = await p.evaluate(()=>{
       const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height};};
       return {image:rect('.dog-scene > img'),chat:rect('.chat'),story:rect('.duo-story'),overflow:document.documentElement.scrollWidth>innerWidth};

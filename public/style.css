@@ -977,7 +977,13 @@ footer p {
     object-fit: contain;
   }
   .dog-scene .floating-note {
-    display: none;
+    display: flex;
+    position: static;
+    transform: none;
+    width: 100%;
+    padding: 7px 10px;
+    font-size: 12px;
+    gap: 8px;
   }
   .floating-note {
     font-size: 10px;
@@ -1208,7 +1214,13 @@ footer p {
     object-fit: contain;
   }
   .dog-scene .floating-note {
-    display: none;
+    display: flex;
+    position: static;
+    transform: none;
+    width: 100%;
+    padding: 6px 8px;
+    gap: 6px;
+    font-size: 11px;
   }
   .duo-story {
     font-size: 11px;
@@ -1302,6 +1314,10 @@ footer p {
 .meal-row > .icon { background: #f2e9d9; }
 .family-row > .icon { background: #e4edf1; }
 .routine-footnote { font-size: 11px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; margin: 0; }
+.account-options { display: grid; gap: 10px; margin: 18px 0; }
+.signed-out-home { padding: 24px; }
+.signed-out-home > .btn { margin: 6px 6px 6px 0; }
+#account-button[hidden] { display: none; }
 @media (max-width: 760px) {
   .pet-controls { padding: 0 20px 10px; }
   .pet-picker { max-width: none; }

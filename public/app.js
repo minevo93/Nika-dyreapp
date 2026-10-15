@@ -1,5 +1,7 @@
 "use strict";
 (() => {
+  const account = window.NikaAccount;
+  let cloudMode = false, cloudReady = false;
   const KEY = "nika-demo-v2",
     LEGACY = "nika-mvp-v1",
     PRE_MULTI = "nika-demo-v2-before-multi";
@@ -311,6 +313,13 @@
   }
   function save() {
     d.revision++;
+    if (cloudMode) {
+      if (!cloudReady || blocked) return false;
+      storageIssue = "Lagrer på kontoen …";
+      showStorage();
+      account.save(d).catch(() => {});
+      return true;
+    }
     if (blocked) {
       showStorage();
       return false;
@@ -381,6 +390,9 @@
     );
   }
   function nav() {
+    const accountButton = $("account-button");
+    accountButton.hidden = !account?.enabled;
+    accountButton.textContent = cloudMode ? "Min konto" : "Logg inn";
     const tabs = d.dog && !d.addingPet && !d.sessionEnded
       ? [
           ["home", "Oversikt"],
@@ -410,7 +422,11 @@
     modal(`<h2 id="dialog-title">Mine dyr</h2><p class="muted">Profiler og historikk lagres bare i denne nettleseren. Familien er felles; turer, måltider og favorittsteder tilhører hvert dyr.</p><div class="pet-list">${allPets().map(p=>`<div class="pet-list-row"><div><strong>${html(p.dog.name)}</strong><span>${html(p.dog.species || "Hund")} · ${html(p.dog.age)}${p.active?" · en tur pågår":""}</span></div>${p.id===d.petId?'<button class="btn secondary" disabled>Valgt</button>':btn("Velg "+html(p.dog.name),"choose-pet","secondary",p.id)}</div>`).join("")}</div><div class="form-actions">${allPets().length<50?btn(d.draft.name?"Fortsett ny registrering":"Legg til dyr","add-pet",""):"<p>Demoen støtter inntil 50 dyr.</p>"}${btn("Lukk","close")}</div>`);
   }
   function sessionScreen() {
-    $("content").innerHTML=`<section class="session-screen card"><img src="assets/paw.svg" alt="" width="52" height="52"><h1>Du er logget ut</h1><p>Den lokale økten er avsluttet. ${allPets().length===1?"Dyreprofilen din er":`De ${allPets().length} dyreprofilene er`} fortsatt lagret i denne nettleseren. Historikken er også bevart.</p>${allPets().some(p=>p.active)?'<p class="notice">En tur pågår fortsatt. Tiden fortsetter å løpe til du åpner profilen og avslutter turen.</p>':""}${btn("Åpne mine dyr","resume","")}<p class="session-explainer">Dette er en lokal demo uten konto eller passord. Utlogging skjuler oversikten, men beskytter ikke dataene mot andre som bruker denne nettleseren. «Åpne mine dyr» krever ingen innlogging.</p></section>`;
+    const saved = d;
+    d = defaults();
+    onboarding();
+    d = saved;
+    document.querySelector('.chat').innerHTML = `<div class="signed-out-home"><h2>Velkommen til Nika</h2><p>Et bedre liv sammen, én liten hverdag av gangen.</p>${account?.enabled ? btn("Logg inn med Google eller Microsoft","account","") : ""}${d.dog ? btn("Åpne mine lokale dyr","resume") : btn("Prøv den lokale demoen","resume")}<p class="muted">Demoen lagres bare på denne enheten. Lokale profiler krever ikke passord.</p></div>`;
   }
   function render(focus = false) {
     nav();
@@ -418,6 +434,16 @@
     if (d.sessionEnded) sessionScreen();
     else if (!d.dog || d.addingPet) onboarding();
     else dashboardPage();
+    if (cloudMode) {
+      document.querySelector('.demo-tag').textContent = 'Privat konto';
+      document.querySelector('footer > p').textContent = 'Lagret på kontoen · Bare du har tilgang · Familiedeling kommer senere';
+      for (const el of document.querySelectorAll('.chat-help')) {
+        el.textContent = el.textContent.replace('Opplysningene lagres bare i denne nettleseren.', 'Opplysningene lagres privat på kontoen din.');
+      }
+      const trust = document.querySelector('.trust-row span');
+      if (trust) trust.textContent = 'Privat på kontoen';
+      if (blocked) document.querySelectorAll('#content input,#content select,#content button,#pet-controls button,#pet-controls select,#nav button').forEach(el => el.disabled = true);
+    }
     if (focus) $("content").focus({ preventScroll: true });
   }
   function onboarding() {
@@ -435,6 +461,7 @@
     $("content").innerHTML =
       `<section class="welcome-top"><span class="eyebrow">DITT DYR. DIN FAMILIE. DERES HVERDAG.</span><h1>Et bedre liv <em>sammen</em></h1><p>Litt mer oversikt. Litt mindre å huske på. <span class="welcome-second-line">Og mer tid til det som betyr noe.</span></p></section><div class="onboard-scene"><aside class="dog-scene" aria-label="Møt Nika og Tyra"><img src="assets/nika-dog-duo-v3.webp" alt="Bestevenninnene Tyra med hvit pels og Nika med svart og lysebrun pels" width="620" height="680"><div class="floating-note note-one">${icon("heart")}<span><b>En del av familien</b>Hver eneste dag.</span></div><div class="floating-note note-two">${icon("leaf")}<span><b>Små turer. Store øyeblikk.</b>En enklere hverdag sammen.</span></div><p class="duo-story"><strong>Møt Nika og Tyra</strong><span>To firbente bestevenninner.<br>Inspirasjonen bak Nika.</span></p></aside><section class="chat" aria-label="Registrer dyret ditt"><div class="chat-head"><div class="chat-id"><img src="assets/paw.svg" alt="" width="38" height="38"><div><strong>Hei, jeg er Nika</strong><span>La oss bli litt kjent</span></div></div><span class="chat-step">${step === 3 ? "Klar til å bekrefte" : `Steg ${step + 1} av 3`}</span></div><div class="messages" id="messages" role="log" aria-label="Registreringssamtale">${msgs}</div>${step < 3 ? `<form id="onboard-form" class="chat-form"><input id="answer" name="answer" aria-label="Svar til Nika" placeholder="${["Dyrets navn …", "Rase eller ukjent rase …", "For eksempel 3 år …"][step]}" maxlength="300" required autocomplete="off"><button class="send" aria-label="Send svar">↑</button></form><p class="error chat-help" id="onboard-error" role="alert"></p>${step === 0 ? '<button class="quick-example" data-action="example">Prøv: «Jessica schæfer tispe 2 år» – uten komma</button>' : ""}` : `<div class="onboard-summary"><h3>En liten oppsummering</h3><dl class="details"><div><dt>Navn</dt><dd>${html(d.draft.name)}</dd></div><div><dt>Rase</dt><dd>${html(d.draft.breed)}</dd></div><div><dt>Alder</dt><dd>${html(d.draft.age)}</dd></div><div><dt>Art</dt><dd>${html(d.draft.species || "Hund")}</dd></div><div><dt>Kjønn</dt><dd>${html(d.draft.sex || "Ikke oppgitt")}</dd></div></dl><div class="form-actions">${btn("Ja, opprett profilen", "confirm", "")}${btn("Korriger", "correct")}</div></div>`}<p class="chat-help">En veiviser for registrering, ikke AI-rådgivning.<br>Opplysningene lagres bare i denne nettleseren.</p></section></div><div class="trust-row"><span>${icon("shield")}Privat og lokalt</span><span>${icon("paw")}Laget for hundehverdagen</span><span>${icon("heart")}Plass til hele familien</span></div>`;
     const msgsEl = $("messages");
+    if (cloudMode) for (const el of document.querySelectorAll('.chat-help')) el.textContent = el.textContent.replace('Opplysningene lagres bare i denne nettleseren.', 'Opplysningene lagres privat på kontoen din.');
     msgsEl.scrollTop = msgsEl.scrollHeight;
     const form = $("onboard-form");
     if (form) form.onsubmit = (e) => {
@@ -646,11 +673,13 @@
       render();
       notify("Familielisten er oppdatert.");
     };
+    if (cloudMode) document.querySelector('#page-body > .notice').textContent = 'Dette er en navneliste på din private konto. Den gir ingen andre tilgang. Invitasjoner og familiedeling er ikke aktivert ennå.';
   }
   let modalReturn = null;
   function modal(content) {
     modalReturn = document.activeElement;
     $("dialog-content").innerHTML = content;
+    if (cloudMode) for (const el of document.querySelectorAll('#dialog-content .muted')) el.textContent=el.textContent.replace('Profiler og historikk lagres bare i denne nettleseren.', 'Profiler og historikk lagres privat på kontoen din.');
     $("dialog").showModal();
   }
   function closeModal() {
@@ -663,6 +692,10 @@
     );
   }
   function privacy() {
+    if (cloudMode) {
+      modal(`<h2 id="dialog-title">Dine data på kontoen</h2><p>Dyreprofiler og historikk lagres i Nika sitt separate Supabase-prosjekt i Stockholm. Bare den innloggede brukeren har tilgang. Familielisten gir ingen andre tilgang ennå.</p><p>Google eller Microsoft bekrefter identiteten din. Nika får ikke tilgang til innboksen din eller passordet ditt. Innlogging gir ingen administratortilgang.</p><p>Gamle demodata ligger fortsatt lokalt og lastes ikke opp automatisk. Denne versjonen har ennå ikke GPS eller familiedeling.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${btn("Slett dyredata på kontoen","cloud-reset","danger")}${btn("Lukk","close")}</div>`);
+      return;
+    }
     modal(
       `<h2 id="dialog-title">Dine data, på din enhet</h2><p>Nika er en offentlig testdemo. Dyreprofiler, registreringsfremdrift, turer, måltider og familie lagres bare i denne nettleseren. De deles ikke, og lagringen er ingen sikkerhetskopi.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen. Du møter dem som illustrasjoner i Nika. De er appens ansikter, ikke profilbilder av hunden du registrerer.</p><p>Demoen har ingen generell AI-chat, GPS, brukerkonto, familiedeling, aktiv QR-ID eller butikk. Ingen analyse eller posisjon samles inn.</p><p>Du kan ha flere lokale dyreprofiler. Turer, måltider og favorittsteder holdes adskilt; familien er felles. «Logg ut» avslutter bare den lokale økten og er ingen passordbeskyttelse.</p><p>Eksport kan inneholde opplysningene du har skrevet inn. Oppbevar filen privat. Sletting gjelder bare Nika-data i denne nettleseren.</p>${d.legacyContact ? "<p>Kontaktfeltet fra den gamle demoen er bevart i lokal lagring og eksport. Det publiseres ikke.</p>" : ""}<div class="form-actions">${btn("Eksporter Nika-data", "export")}${btn("Slett Nika-data", "reset", "danger")}${btn("Lukk", "close")}</div>`,
     );
@@ -670,7 +703,7 @@
   function exportData() {
     let data;
     try {
-      data = {
+      data = cloudMode ? {format:"Nika kontoeksport",exportedAt:new Date().toISOString(),current:d} : {
         format: "Nika lokal eksport",
         exportedAt: new Date().toISOString(),
         current: d,
@@ -724,6 +757,11 @@
   document.addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b) return;
+    const accountAction = b.dataset.action;
+    if (["account","google","azure","cloud-logout","cloud-discard","cloud-discard-confirm","cloud-reset","cloud-reset-confirm"].includes(accountAction)) {
+      if (e.detail <= 1) handleAccountAction(accountAction, b);
+      return;
+    }
     if (externalChanged && !["close","privacy","export","reset","reset-confirm"].includes(b.dataset.action)) {
       notify("Oppdater siden før du fortsetter. Dataene er endret i en annen fane.");
       return;
@@ -750,12 +788,14 @@
       return;
     }
     if (a === "resume") {
+      try { sessionStorage.removeItem('nika-home-after-logout'); } catch {}
       d.sessionEnded=false;
       save(); go("home");
       return;
     }
     if (d.sessionEnded && !["reset","reset-confirm"].includes(a)) return;
     if (a === "logout" && d.dog) {
+      if (cloudMode) { handleAccountAction('cloud-logout', b); return; }
       modal(`<h2 id="dialog-title">Avslutte den lokale økten?</h2><p>Dyreprofiler og historikk beholdes på denne enheten. ${allPets().some(p=>p.active)?"En tur pågår; tiden fortsetter til du åpner riktig profil og avslutter den.":""}</p><p class="notice">Demoen har ingen konto eller passord. Utlogging skjuler oversikten, men er ikke en sikker tilgangssperre. Andre som bruker denne nettleseren kan åpne profilene igjen.</p><div class="form-actions">${btn("Logg ut","logout-confirm","")}${btn("Avbryt","close")}</div>`);
       return;
     }
@@ -1013,6 +1053,7 @@
     }
   });
   window.addEventListener("storage", (e) => {
+    if (cloudMode) return;
     if (e.key === KEY || e.key === LEGACY || e.key === PRE_MULTI || e.key === null) {
       storageIssue =
         "Nika-data er endret i en annen fane. Oppdater denne siden før du fortsetter, slik at endringer ikke overskrives.";
@@ -1024,5 +1065,80 @@
         .forEach((el) => (el.disabled = true));
     }
   });
-  render();
+  async function accountDialog() {
+    if (cloudMode) {
+      modal(`<h2 id="dialog-title">Min konto</h2><p>${html(account.user?.email || 'Innlogget bruker')}</p><p>Vanlig brukertilgang. Dine dyr og din historikk er private.</p>${blocked ? '<p class="notice">Du har ulagrede endringer. Eksporter dem før du forlater siden.</p>' : ''}<div class="form-actions">${btn("Logg ut","cloud-logout","")}${btn("Eksporter Nika-data","export")}${btn("Lukk","close")}</div><p id="account-error" class="error" role="alert"></p>`);
+      return;
+    }
+    modal(`<h2 id="dialog-title">Velkommen til Nika</h2><p>Registrer deg eller logg inn med kontoen du allerede har.</p><div class="account-options"><button class="btn secondary" data-action="google" disabled>Fortsett med Google</button><button class="btn secondary" data-action="azure" disabled>Fortsett med Microsoft</button></div><p class="muted">Microsoft støtter Hotmail, Outlook og Live. Nika får ikke tilgang til innboksen din.</p><p id="account-error" role="status">Kontrollerer tilgjengelig innlogging …</p><p class="muted">Lokale demodata lastes ikke opp automatisk. Du får en privat konto uten administratortilgang.</p>${btn("Lukk","close")}`);
+    try {
+      const available = await account.providers();
+      if (!$("dialog").open || !document.querySelector('[data-action="google"]')) return;
+      for (const provider of ['google','azure']) document.querySelector(`[data-action="${provider}"]`).disabled = !available[provider];
+      $("account-error").textContent = Object.values(available).every(Boolean) ? '' : 'Innlogging er under klargjøring. Bare aktive valg kan brukes.';
+    } catch { if ($('account-error')) $('account-error').textContent = 'Kunne ikke nå innloggingstjenesten. Lukk og prøv igjen.'; }
+  }
+  async function handleAccountAction(action, button) {
+    if (!account?.enabled) return;
+    if (action === 'account') { await accountDialog(); return; }
+    if (action === 'cloud-logout' && blocked) {
+      modal(`<h2 id="dialog-title">Ulagrede endringer</h2><p>Eksporter endringene før du logger ut. Ellers forsvinner det som ikke ble lagret på kontoen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${btn("Logg ut uten å lagre","cloud-discard-confirm","danger")}${btn("Avbryt","close")}</div>`);
+      return;
+    }
+    if (action === 'cloud-reset') {
+      confirmRemove('Slette dyredata på kontoen?', 'Alle dyreprofiler og historikk på denne kontoen slettes. Selve innloggingskontoen og lokale demodata beholdes. Eksporter først hvis du vil beholde historikken.', 'cloud-reset-confirm');
+      return;
+    }
+    button.disabled = true;
+    try {
+      if (action === 'google' || action === 'azure') await account.signIn(action);
+      if (action === 'cloud-logout') await account.signOut();
+      if (action === 'cloud-discard-confirm') await account.signOut({discardUnsaved:true});
+      if (action === 'cloud-reset-confirm') { await account.removeData(); d=defaults(); closeModal(); render(true); notify('Dyredata på kontoen er slettet.'); }
+    } catch(e) {
+      if ($('account-error')) $('account-error').textContent = 'Handlingen kunne ikke fullføres. '+e.message;
+      else { storageIssue=e.message; showStorage(); }
+      button.disabled = false;
+    }
+  }
+  async function boot() {
+    if (!account?.enabled) { render(); return; }
+    $('content').innerHTML = '<p role="status" class="notice">Åpner Nika …</p>';
+    account.on((type,error) => {
+      if (type === 'saved') { storageIssue='Lagret på kontoen.'; showStorage(); }
+      if (type === 'saveerror') { blocked=true; storageIssue=error.message; render(); }
+      if (type === 'signedout' || type === 'accountchanged') {
+        d=defaults(); cloudReady=false;
+        $('dialog').close(); $('pet-controls').replaceChildren(); $('nav').replaceChildren();
+        $('content').replaceChildren();
+        location.replace('/?signedout=1');
+      }
+    });
+    try {
+      const user = await account.restore();
+      if (user) {
+        cloudMode=true;
+        // Do not show a previous local user's data while a cloud account is loading.
+        d=defaults();
+        const stored=await account.load();
+        d=stored ? validate(stored) : defaults();
+        d.sessionEnded=false; blocked=false; storageIssue=''; cloudReady=true;
+      } else {
+        const signedout = new URLSearchParams(location.search).has('signedout');
+        let stayHome = signedout;
+        try {
+          if (signedout) sessionStorage.setItem('nika-home-after-logout','1');
+          stayHome = stayHome || sessionStorage.getItem('nika-home-after-logout') === '1';
+        } catch {}
+        if (stayHome) d.sessionEnded=true;
+      }
+      const params = new URLSearchParams(location.search);
+      if (params.has('error') || params.has('error_description')) storageIssue='Innloggingen ble avbrutt eller avvist. Du kan prøve igjen.';
+      if (params.has('code') || params.has('error') || params.has('signedout')) history.replaceState(null,'',location.pathname);
+      render();
+    } catch {
+      $('content').innerHTML='<section class="card"><h1>Kunne ikke åpne kontoen</h1><p>Dataene er ikke endret. Kontroller forbindelsen og oppdater siden.</p><button class="btn" data-action="cloud-logout">Logg ut og gå til forsiden</button></section>';
+    }
+  }
+  boot();
 })();

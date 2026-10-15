@@ -1,0 +1,32 @@
+// UI integration with an explicit fake account service; not OAuth-provider verification.
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs'),{spawn}=require('node:child_process');
+let browser,server;
+const base='http://127.0.0.1:4173';
+(async()=>{
+ server=spawn(process.execPath,[path.join(__dirname,'server.cjs')],{stdio:'ignore'});
+ for(let i=0;i<30;i++){try{await fetch(base);break}catch{await new Promise(r=>setTimeout(r,100))}}
+ browser=await chromium.launch({headless:true}); const errors=[];
+ const ctx=await browser.newContext({viewport:{width:390,height:844}});
+ await ctx.addInitScript(()=>{
+  const listeners=[];
+  const record={version:2,dog:{name:'Kontodyr',breed:'Ukjent rase',age:'2 år',sex:'Ikke oppgitt',species:'Hund'},draft:{name:'',breed:'',age:''},walks:[],active:null,meals:[],feedings:[],family:[],places:[],revision:0,multiPetVersion:1,petId:'cloud-pet',otherPets:[],addingPet:false,sessionEnded:false};
+  // Keep a different local animal to detect unintended cloud import/disclosure.
+  localStorage.setItem('nika-demo-v2',JSON.stringify({...record,dog:{...record.dog,name:'Lokalt dyr'}}));
+  window.testCalls=[];
+  const a={enabled:true,user:null,on(fn){listeners.push(fn)},async restore(){if(!sessionStorage.getItem('test-signed-out')){a.user={id:'test-user',email:'test@example.invalid'};return a.user}return null},async load(){return JSON.parse(sessionStorage.getItem('test-cloud')||JSON.stringify(record))},async save(d){window.testCalls.push('save');sessionStorage.setItem('test-cloud',JSON.stringify(d));listeners.forEach(fn=>fn('saved'));},async signOut(){sessionStorage.setItem('test-signed-out','1');location.replace('/?signedout=1')},async providers(){return {google:true,azure:true}},async signIn(provider){window.testCalls.push(provider)},async removeData(){window.testCalls.push('delete')}};
+  Object.defineProperty(window,'NikaAccount',{get:()=>a,set:()=>{}});
+ });
+ const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));
+ await p.goto(base);await p.locator('.welcome-banner h1').waitFor();assert.match(await p.locator('.welcome-banner h1').innerText(),/Kontodyr/);assert.doesNotMatch(await p.locator('#content').innerText(),/Lokalt dyr/);
+ assert.match(await p.locator('footer > p').innerText(),/Lagret på kontoen/);
+ await p.locator('[data-go="profile"]').click();await p.locator('#dog-name').fill('Kontodyr endret');await p.getByRole('button',{name:'Lagre profil',exact:true}).click();await p.reload();assert.match(await p.locator('.welcome-banner h1').innerText(),/Kontodyr endret/);assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('nika-demo-v2')).dog.name),'Lokalt dyr');
+ await p.locator('[data-go="family"]').click();assert.match(await p.locator('#page-body > .notice').innerText(),/gir ingen andre tilgang/);
+ await p.locator('[data-action="privacy"]').click();assert.match(await p.locator('#dialog-content').innerText(),/ingen administratortilgang/);await p.locator('[data-action="close"]').click();
+ await p.locator('[data-action="logout"]').click();await p.locator('.signed-out-home').waitFor();assert.match(await p.locator('h1').innerText(),/Et bedre liv/);assert.equal(await p.locator('#pet-select').count(),0);assert.doesNotMatch(await p.locator('#content').innerText(),/Kontodyr|Lokalt dyr/);
+ await p.locator('#account-button').click();assert.equal(await p.locator('[data-action="google"]').isEnabled(),true);await p.locator('[data-action="azure"]').click();assert.deepEqual(await p.evaluate(()=>window.testCalls),['azure']);
+ fs.mkdirSync('evidence',{recursive:true});await p.screenshot({path:'evidence/account-options-mobile.png',fullPage:true});
+ console.log('NIKA_IMAGE account-options-mobile '+(await p.screenshot({type:'jpeg',quality:75,fullPage:true})).toString('base64'));
+ await p.locator('[data-action="close"]').click();await p.reload();assert.equal(await p.locator('#pet-select').count(),0);await p.locator('[data-action="resume"]').click();assert.match(await p.locator('.welcome-banner h1').innerText(),/Lokalt dyr/);
+ assert.deepEqual(errors,[]);console.log('PASS_ACCOUNT_BROWSER cloud/local separation, profile save/reload, truthful family status, ordinary role, direct homepage logout, Microsoft choice, no JS errors. Simulated service, Chromium '+browser.version());
+ await ctx.close();
+})().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();server?.kill()});
