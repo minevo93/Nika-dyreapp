@@ -1,6 +1,14 @@
 # Verifisering – Nika demo v2
 
-## Gjeldende produksjon – eget domene, 15. oktober 2026
+## Gjeldende produksjon – support og klargjort e-postkode, 15. oktober 2026
+
+- https://www.nikaappen.no/ – deploy `6ad13b07a21cee8660028110`, production `ready`, publisert 22:43 Oslo. Webkode `f2f695017854e8b28205d3566e3646509893cef3`, tester `94e29f0519afd3f354a5075e6efec882c0a11557`, samme arbeidsgren og PR #1.
+- [Test før publisering](https://github.com/minevo93/Nika-dyreapp/actions/runs/38804097910): success. [Offentlig produksjonskontroll](https://github.com/minevo93/Nika-dyreapp/actions/runs/38804434488): success. Filhash, eksisterende funksjoner, ti visningsstørrelser, registrering og flere dyr består.
+- [Utvidet kontotest](https://github.com/minevo93/Nika-dyreapp/actions/runs/38804434575): success. Åtte logikkgrupper og faktisk Chromium-brukergrensesnitt med **simulert kontotjeneste**: e-post, kode, feil kode, korrigert adresse, verifisering, profilseparasjon, lagring, utlogging. Chromium 151.0.7922.34 / Playwright 1.62.1 i GitHub Actions. Ikke fysisk telefon, Safari/Firefox eller ekte e-postlevering.
+- Kundesupportlenken er publisert. Både `enabled` og `emailEnabled` forblir `false`. Ingen koder sendt; mal og kode er forberedt, ikke en aktivert innlogging.
+- E-postleverandørens oppsett krever avklaring før SMTP kan fullføres. Ingen DNS-endring gjennomført.
+
+## Tidligere produksjon – eget domene, 15. oktober 2026
 
 - Hovedadresse: https://www.nikaappen.no/. Rotdomene og HTTP videresender til HTTPS på www (kontrollert med gyldig TLS).
 - Deploy `6ad132cbc7be86312eea6201`: production, ready, publisert 22:08 Oslo. Webkode `8dd768fb5f6cc2a9f4d3e190da686cf22578deaf`, testcommit `84341e25a5bce2b198fae62b9753f60c3264e866`, gren `feat/nika-demo-v2`, PR #1.

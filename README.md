@@ -1,6 +1,6 @@
 # Nika – Dyreappen
 
-**Pågående kontoarbeid:** Google og Microsoft/Hotmail er valgt. Privat database og kontokode er klargjort, men innlogging er deaktivert til OAuth-appene er registrert og ekte innlogging er testet. Se [status og aktivering](docs/account-setup.md). GPS og familiedeling gjenstår. Den offentlige appen fungerer fortsatt som lokal demo.
+**Pågående kontoarbeid:** Privat database og innlogging med e-postkode er klargjort. SMTP/domenet må verifiseres og ekte registrering testes før innlogging aktiveres. Google og Microsoft er fortsatt av. Kundesupport: support.nika@miveno.no. Se [status og aktivering](docs/account-setup.md). GPS og familiedeling gjenstår; offentlig app er fortsatt lokal demo.
 
 En norsk, lokal webdemo for dyrehverdagen. Vanlig HTML, CSS og JavaScript, uten rammeverk, byggesteg eller backend.
 
@@ -8,7 +8,7 @@ En norsk, lokal webdemo for dyrehverdagen. Vanlig HTML, CSS og JavaScript, uten 
 
 Supabase Site URL og appens OAuth-returadresse er oppdatert til hovedadressen. `nikaappen.no` videresender til `www`. Lokale profiler på det gamle Netlify-domenet overføres ikke automatisk mellom domener; data er ikke slettet eller lastet opp.
 
-Produksjonsdeploy `6ad132cbc7be86312eea6201` er `ready`, publisert 15. oktober 2026 kl. 22:08 Oslo-tid til eksisterende Nika-prosjekt. Webkode: `8dd768fb5f6cc2a9f4d3e190da686cf22578deaf` på `feat/nika-demo-v2` (PR #1). Blå rammer er erstattet med grønt tastaturfokus, og programmatisk navigasjon tegner ikke ramme rundt hele siden. Knapper har diskret dybde og trykkrespons, bunnmenyen har ikoner og tekst, og profilens forbokstav åpner profilredigering. Personvernlenken beholder tilgang til eksport og sletting. Alle eksisterende tekster og lokale funksjoner er bevart. Testresultater og skjermbilder finnes i [TESTING.md](TESTING.md).
+Produksjonsdeploy `6ad13b07a21cee8660028110` er `ready`, publisert 15. oktober 2026 kl. 22:43 Oslo-tid til eksisterende Nika-prosjekt. Webkode: `f2f695017854e8b28205d3566e3646509893cef3` på `feat/nika-demo-v2` (PR #1). Blå rammer er erstattet med grønt tastaturfokus, og programmatisk navigasjon tegner ikke ramme rundt hele siden. Knapper har diskret dybde og trykkrespons, bunnmenyen har ikoner og tekst, og profilens forbokstav åpner profilredigering. Personvernlenken beholder tilgang til eksport og sletting. Alle eksisterende tekster og lokale funksjoner er bevart. Testresultater og skjermbilder finnes i [TESTING.md](TESTING.md).
 
 ## Kjør lokalt
 
@@ -42,7 +42,7 @@ Ingen analyse, nettverks-API-er, eksterne fonter, posisjonsinnsamling eller hemm
 
 ## Netlify
 
-Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `8dd768fb5f6cc2a9f4d3e190da686cf22578deaf` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
+Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `f2f695017854e8b28205d3566e3646509893cef3` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
 
 Netlifys Developer settings er kontrollert og viser **Current repository: Not linked**. Dette er derfor et manuelt produksjonsdeploy, ikke automatisk Git-publisering. Ingen konto- eller repository-tilgang er utvidet for å koble Git. Før en eventuell senere Git-kobling med produksjonsgren `main` må den ferdige koden merges med nødvendig godkjenning, slik at en eldre main-versjon ikke erstatter demoen.
 
