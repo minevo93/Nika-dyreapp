@@ -3,7 +3,8 @@ const fs=require('node:fs');
 (async()=>{
  const source=fs.readFileSync('src/account-core.js','utf8');
  const {createAccount}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
- const config={enabled:true,url:'https://example.supabase.co',key:'public-test',redirectTo:'https://nika-dyreapp.netlify.app/'};
+ const config={enabled:true,url:'https://example.supabase.co',key:'public-test',redirectTo:'https://www.nikaappen.no/'};
+ assert.match(fs.readFileSync('src/account.js','utf8'),/redirectTo: 'https:\/\/www\.nikaappen\.no\/'/,'production callback uses the canonical HTTPS domain');
  function harness(overrides={}) {
   const calls=[], values=new Map([['unrelated','keep'],['nika-demo-v2','local-data']]);
   let callback, row=null, refuse=false, oauthError=null, logoutError=null;

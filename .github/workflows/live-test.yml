@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      NIKA_TEST_URL: https://nika-dyreapp.netlify.app
+      NIKA_TEST_URL: https://www.nikaappen.no
       NIKA_EXPECT_MOBILE_V6: '1'
     steps:
       - uses: actions/checkout@v4
