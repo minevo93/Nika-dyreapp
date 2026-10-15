@@ -727,6 +727,11 @@
     };
     if (cloudMode) document.querySelector('#page-body > .notice').innerHTML = `<p>Dette er en navneliste for oppgaver og roller. Den gir ingen andre tilgang. Kontotilgang administreres separat i Familiedeling.</p>${btn('Administrer familiedeling','sharing','')}`;
   }
+  // Remove credentials on every dialog close, including Escape and displayed passwords.
+  $('dialog').addEventListener('close',()=>{
+    if($('dialog').open)return;
+    $('dialog-content').querySelectorAll('.password-field input,#login-code,#password-nonce').forEach(input=>{input.value='';});
+  });
   let modalReturn = null;
   function modal(content) {
     modalReturn = document.activeElement;
@@ -745,7 +750,7 @@
   }
   function privacy() {
     if (cloudMode) {
-      modal(`<h2 id="dialog-title">Dine data på kontoen</h2><p>Dyreprofiler og historikk lagres i Nika sitt separate Supabase-prosjekt i Stockholm. Din private oversikt er bare tilgjengelig for deg. Velger du familiedeling, får medlemmene lese og redigere familiens separate oversikt. Invitasjonskoder gir tilgang og skal deles privat.</p><p>Du bekrefter identiteten din med e-postkode eller en tilgjengelig innloggingstjeneste. Nika får ikke tilgang til innboksen din eller e-postpassordet ditt. Innlogging gir ingen administratortilgang.</p><p>Gamle demodata ligger fortsatt lokalt og lastes ikke opp automatisk. GPS er valgfritt. Posisjoner registreres kun etter at du slår på GPS, og pauses når siden skjules. GPS-ruter i familiens oversikt deles med familiemedlemmene. Ingen skjult sporing eller analyse brukes.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${btn("Slett dyredata på kontoen","cloud-reset","danger")}${btn("Lukk","close")}</div>`);
+      modal(`<h2 id="dialog-title">Dine data på kontoen</h2><p>Dyreprofiler og historikk lagres i Nika sitt separate Supabase-prosjekt i Stockholm. Din private oversikt er bare tilgjengelig for deg. Velger du familiedeling, får medlemmene lese og redigere familiens separate oversikt. Invitasjonskoder gir tilgang og skal deles privat.</p><p>Du logger inn med e-post og ditt eget Nika-passord, eller en tilgjengelig innloggingstjeneste. E-postkode brukes ved registrering og når du trenger å opprette eller tilbakestille passord. Nika får ikke tilgang til innboksen din eller e-postpassordet ditt. Innlogging gir ingen administratortilgang.</p><p>Gamle demodata ligger fortsatt lokalt og lastes ikke opp automatisk. GPS er valgfritt. Posisjoner registreres kun etter at du slår på GPS, og pauses når siden skjules. GPS-ruter i familiens oversikt deles med familiemedlemmene. Ingen skjult sporing eller analyse brukes.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${btn("Slett dyredata på kontoen","cloud-reset","danger")}${btn("Lukk","close")}</div>`);
       return;
     }
     modal(
@@ -816,7 +821,7 @@
     if(accountAction==='delete-route'){confirmRemove('Slette GPS-ruten?','Posisjonene slettes fra denne turen. Tid og hendelser beholdes.','delete-route-confirm',b.dataset.id);return;}
     if(accountAction==='delete-route-confirm' && !blocked){const walk=d.walks.find(w=>w.id===b.dataset.id);if(walk)delete walk.gps;save();closeModal();render();return;}
     if(accountAction === "photo") { if(!blocked) photoDialog(); return; }
-    if (["account","google","azure","cloud-logout","cloud-discard","cloud-discard-confirm","cloud-reset","cloud-reset-confirm"].includes(accountAction)) {
+    if (["account","password","google","azure","cloud-logout","cloud-discard","cloud-discard-confirm","cloud-reset","cloud-reset-confirm"].includes(accountAction)) {
       if (e.detail <= 1) handleAccountAction(accountAction, b);
       return;
     }
@@ -1188,7 +1193,7 @@
 
   async function accountDialog() {
     if (cloudMode) {
-      modal(`<h2 id="dialog-title">Min konto</h2><p>${html(account.user?.email || 'Innlogget bruker')}</p><p id="account-role">Dine dyr og din historikk er private.</p><section id="admin-summary" hidden></section>${blocked ? '<p class="notice">Du har ulagrede endringer. Eksporter dem før du forlater siden.</p>' : ''}<div class="form-actions">${btn("Familiedeling","sharing","")}${btn("Logg ut","cloud-logout")}${btn("Eksporter Nika-data","export")}${btn("Lukk","close")}</div><p id="account-error" class="error" role="alert"></p>`);
+      modal(`<h2 id="dialog-title">Min konto</h2><p>${html(account.user?.email || 'Innlogget bruker')}</p><p id="account-role">Dine dyr og din historikk er private.</p><section id="admin-summary" hidden></section>${blocked ? '<p class="notice">Du har ulagrede endringer. Eksporter dem før du forlater siden.</p>' : ''}<div class="form-actions">${btn("Opprett eller endre passord","password","")}${btn("Familiedeling","sharing","")}${btn("Logg ut","cloud-logout")}${btn("Eksporter Nika-data","export")}${btn("Lukk","close")}</div><p id="account-error" class="error" role="alert"></p>`);
       const roleEl=$('account-role'), summary=$('admin-summary');
       try {
         const access=await account.access();
@@ -1211,39 +1216,90 @@
       $("account-error").textContent = Object.values(available).some(Boolean) ? '' : 'Innlogging er under klargjøring. Prøv igjen senere.';
     } catch { if ($('email-login') === emailBox) $('account-error').textContent = 'Kunne ikke nå innloggingstjenesten. Lukk og prøv igjen.'; }
   }
-  function emailLoginForm(box) {
-    let address = '', busy = false;
-    function show(codeStep) {
-      box.innerHTML = codeStep
-        ? `<form id="email-code-form"><p>Sjekk innboksen og søppelposten til <strong>${html(address)}</strong>.</p><label for="login-code">Engangskode</label><input id="login-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" minlength="8" maxlength="8" required placeholder="8 siffer"><button class="btn" type="submit">Bekreft og logg inn</button><button id="email-resend" class="text-button" type="button">Send ny kode</button><button id="email-change" class="text-button" type="button">Endre e-postadresse</button></form>`
-        : `<form id="email-address-form"><label for="login-email">E-postadresse</label><input id="login-email" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="deg@eksempel.no" value="${html(address)}"><p class="muted">Vi sender en engangskode. Første gang opprettes en konto når du bekrefter e-posten.</p><button class="btn" type="submit">Send innloggingskode</button></form>`;
-      const form = box.querySelector('form');
-      async function run(work) {
-        if (busy) return;
-        busy=true; form.setAttribute('aria-busy','true');
-        form.querySelectorAll('button,input').forEach(el=>el.disabled=true);
-        const status=$('account-error'); status.textContent='Vent litt …';
-        try { await work(); }
-        catch(error) { if (box.isConnected) status.textContent=error.message; }
-        finally { busy=false; form.removeAttribute('aria-busy'); form.querySelectorAll('button,input').forEach(el=>el.disabled=false); }
-      }
-      form.onsubmit = event => {
-        event.preventDefault();
-        if (codeStep) { const code=$('login-code').value; run(async()=>{await account.verifyEmailCode(code);}); }
-        else { address=$('login-email').value.trim(); run(async()=>{await account.requestEmailCode(address); if(box.isConnected){show(true);$('account-error').textContent='Kode forespurt. Sjekk e-posten din.';$('login-code').focus();}}); }
+  function bindPasswordToggle(root) {
+    root.querySelectorAll('[data-password-toggle]').forEach(button => {
+      button.onclick=()=>{
+        const input=$(button.dataset.passwordToggle), visible=input.type==='password';
+        input.type=visible?'text':'password';
+        button.textContent=visible?'Skjul':'Vis';
+        button.setAttribute('aria-pressed',String(visible));
       };
-      if (codeStep) {
-        $('email-change').onclick=()=>{if(!busy){show(false);$('account-error').textContent='';$('login-email').focus();}};
-        $('email-resend').onclick=()=>run(async()=>{await account.requestEmailCode(address); if(box.isConnected)$('account-error').textContent='Ny kode forespurt. Sjekk e-posten din.';});
-      }
+    });
+  }
+  function passwordField(id,label,autocomplete='new-password') {
+    return `<label for="${id}">${label}</label><div class="password-field"><input id="${id}" type="password" name="${id}" autocomplete="${autocomplete}" required ${autocomplete==='new-password'?'minlength="12" maxlength="72"':'maxlength="1024"'}><button type="button" class="text-button" data-password-toggle="${id}" aria-label="Vis eller skjul ${label.toLowerCase()}" aria-pressed="false">Vis</button></div>`;
+  }
+  function passwordDialog() {
+    if(!cloudMode || !account.user)return;
+    modal(`<h2 id="dialog-title">Ditt passord</h2><p>Velg et eget passord til Nika. Neste gang logger du inn med e-post og passord, uten engangskode.</p><form id="password-form" class="auth-form"><input type="text" name="username" autocomplete="username" value="${html(account.user.email)}" hidden>${passwordField('new-password','Nytt passord')}${passwordField('confirm-password','Gjenta passord')}<p id="password-help" class="muted">Minst 12 tegn. Bruk gjerne en lang, unik passordfrase. Ikke bruk passordet til e-postkontoen din.</p><div id="password-reauth" hidden><p>Økten må bekreftes på nytt.</p><button type="button" id="password-send-code" class="btn secondary">Send bekreftelseskode</button><label for="password-nonce">Kode fra e-posten</label><input id="password-nonce" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,8}" maxlength="8"></div><p id="password-status" role="status"></p><div class="form-actions"><button class="btn" type="submit">Lagre passord</button>${btn('Avbryt','close')}</div></form>`);
+    const form=$('password-form'),status=$('password-status');let busy=false;
+    bindPasswordToggle(form);
+    const clear=()=>form.querySelectorAll('input[type="password"],input[data-secret],#password-nonce').forEach(input=>input.value='');
+    form.querySelectorAll('.password-field input').forEach(input=>{input.dataset.secret='true';input.setAttribute('aria-describedby','password-help');});
+    async function run(work){
+      if(busy)return;busy=true;form.setAttribute('aria-busy','true');
+      form.querySelectorAll('button,input').forEach(el=>el.disabled=true);
+      try{await work();}catch(error){
+        if(form.isConnected){status.textContent=error.message;if(['reauthentication_needed','reauthentication_not_valid'].includes(error.code))$('password-reauth').hidden=false;}
+      }finally{busy=false;form.removeAttribute('aria-busy');form.querySelectorAll('button,input').forEach(el=>el.disabled=false);}
     }
-    show(false);
+    form.onsubmit=event=>{
+      event.preventDefault();
+      if(busy)return;
+      if($('new-password').value!==$('confirm-password').value){status.textContent='Passordene er ikke like. Skriv dem på nytt.';clear();$('new-password').focus();return;}
+      let password=$('new-password').value,nonce=$('password-nonce').value.trim();
+      run(async()=>{
+        status.textContent='Lagrer passord …';
+        try{await account.setPassword(password,nonce);if(form.isConnected && $('dialog').open){clear();modal(`<h2 id="dialog-title">Passordet er lagret</h2><p>Du kan nå logge inn med e-postadressen din og det nye passordet. Dyrene og historikken er beholdt.</p>${btn('Ferdig','close','')}`);}}
+        finally{password='';nonce='';clear();}
+      });
+    };
+    $('password-send-code').onclick=()=>run(async()=>{await account.requestPasswordConfirmation();if(form.isConnected)status.textContent='Sjekk e-posten din. Skriv koden og det nye passordet for å fullføre.';});
+  }
+  function emailLoginForm(box) {
+    let address='',busy=false,mode='login';
+    function show(codeStep=false) {
+      const emailField=`<label for="login-email">E-postadresse</label><input id="login-email" name="email" type="email" autocomplete="username" maxlength="254" required placeholder="deg@eksempel.no" value="${html(address)}">`;
+      box.innerHTML=codeStep
+        ? `<form id="email-code-form"><p>Hvis adressen kan brukes til dette, kommer en kode til <strong>${html(address)}</strong>. Sjekk også søppelposten.</p><label for="login-code">Engangskode</label><input id="login-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" minlength="8" maxlength="8" required placeholder="8 siffer"><button class="btn" type="submit">Bekreft og velg passord</button><button id="email-resend" class="text-button" type="button">Send ny kode</button><button id="email-change" class="text-button" type="button">Endre e-postadresse</button></form>`
+        : mode==='login'
+          ? `<form id="password-login-form">${emailField}${passwordField('login-password','Passord','current-password')}<button class="btn" type="submit">Logg inn</button><div class="auth-links"><button type="button" class="text-button" id="password-recover">Opprett eller glemt passord</button><button type="button" class="text-button" id="email-signup">Opprett konto</button></div><p class="muted">Har du brukt kode før? Velg «Opprett eller glemt passord» for å lage ditt eget passord.</p></form>`
+          : `<form id="email-address-form"><h3>${mode==='signup'?'Opprett konto':'Opprett eller glemt passord'}</h3>${emailField}<p class="muted">${mode==='signup'?'Bekreft e-posten med en kode første gang. Deretter velger du passordet ditt.':'Bruk e-postadressen til den eksisterende kontoen. Bekreft en engangskode og velg nytt passord. Dyrene dine beholdes.'}</p><button class="btn" type="submit">Send innloggingskode</button><button type="button" class="text-button" id="password-back">Tilbake til innlogging</button></form>`;
+      const form=box.querySelector('form');bindPasswordToggle(form);
+      async function run(work){
+        if(busy)return;busy=true;form.setAttribute('aria-busy','true');
+        form.querySelectorAll('button,input').forEach(el=>el.disabled=true);
+        const status=$('account-error');status.textContent='Vent litt …';
+        try{await work();}catch(error){if(box.isConnected)status.textContent=error.message;}
+        finally{busy=false;form.removeAttribute('aria-busy');form.querySelectorAll('button,input').forEach(el=>el.disabled=false);}
+      }
+      form.onsubmit=event=>{
+        event.preventDefault();if(busy)return;
+        if(codeStep){let code=$('login-code').value;run(async()=>{try{await account.verifyEmailCode(code);}finally{code='';const input=form.querySelector('#login-code');if(input)input.value='';}});}
+        else {
+          address=$('login-email').value.trim();
+          if(mode==='login'){
+            let password=$('login-password').value;
+            run(async()=>{try{await account.signInPassword(address,password);}finally{password='';const input=form.querySelector('#login-password');if(input)input.value='';}});
+          } else run(async()=>{await account.requestEmailCode(address,mode);if(box.isConnected && $('dialog').open){show(true);$('account-error').textContent='Kode forespurt. Sjekk e-posten din.';$('login-code').focus();}});
+        }
+      };
+      const changeMode=next=>{if(busy)return;address=$('login-email')?.value.trim()||address;mode=next;show();$('account-error').textContent='';$('login-email').focus();};
+      if(codeStep){
+        $('email-change').onclick=()=>{if(!busy){show();$('account-error').textContent='';$('login-email').focus();}};
+        $('email-resend').onclick=()=>run(async()=>{await account.requestEmailCode(address,mode);if(box.isConnected)$('account-error').textContent='Ny kode forespurt. Sjekk e-posten din.';});
+      }else if(mode==='login'){
+        $('password-recover').onclick=()=>changeMode('password');$('email-signup').onclick=()=>changeMode('signup');
+      }else $('password-back').onclick=()=>changeMode('login');
+    }
+    show();
   }
 
   async function handleAccountAction(action, button) {
     if(action.includes("logout") || action.includes("reset") || action.includes("discard"))gps.stop();
     if (!account?.enabled) return;
     if (action === 'account') { await accountDialog(); return; }
+    if (action === 'password') { passwordDialog(); return; }
     if (action === 'cloud-logout' && blocked) {
       modal(`<h2 id="dialog-title">Ulagrede endringer</h2><p>Eksporter endringene før du logger ut. Ellers forsvinner det som ikke ble lagret på kontoen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${btn("Logg ut uten å lagre","cloud-discard-confirm","danger")}${btn("Avbryt","close")}</div>`);
       return;
@@ -1297,8 +1353,10 @@
       }
       const params = new URLSearchParams(location.search);
       if (params.has('error') || params.has('error_description')) storageIssue='Innloggingen ble avbrutt eller avvist. Du kan prøve igjen.';
-      if (params.has('code') || params.has('error') || params.has('signedout')) history.replaceState(null,'',location.pathname);
+      const setupPassword=cloudMode && params.get('password')==='setup';
+      if (params.has('code') || params.has('error') || params.has('signedout') || params.has('password')) history.replaceState(null,'',location.pathname);
       render();
+      if(setupPassword)passwordDialog();
     } catch {
       $('content').innerHTML='<section class="card"><h1>Kunne ikke åpne kontoen</h1><p>Dataene er ikke endret. Kontroller forbindelsen og oppdater siden.</p><button class="btn" data-action="cloud-logout">Logg ut og gå til forsiden</button></section>';
     }

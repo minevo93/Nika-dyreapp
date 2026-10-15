@@ -14,7 +14,8 @@ const fs=require('node:fs');
  assert.equal(await page.locator('#account-button').isVisible(),true,'sign-in available on ordinary homepage');
  await page.locator('#account-button').click();
  await page.locator('#login-email').waitFor({state:'visible'});
- assert.equal(await page.getByRole('button',{name:'Send innloggingskode',exact:true}).isEnabled(),true);
+ assert.equal(await page.getByRole('button',{name:'Logg inn',exact:true}).isEnabled(),true);
+ assert.equal(await page.locator('#login-password').getAttribute('autocomplete'),'current-password');
  assert.equal(await page.locator('[data-action="google"]').isVisible(),false);
  assert.equal(await page.locator('[data-action="azure"]').isVisible(),false);
  assert.equal(await page.locator('#account-error').innerText(),'');
@@ -22,7 +23,7 @@ const fs=require('node:fs');
  for(const [width,height] of [[390,844],[844,390],[1440,1000]]){
   await page.setViewportSize({width,height});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal overflow');
-  const button=await page.getByRole('button',{name:'Send innloggingskode',exact:true}).boundingBox();
+  const button=await page.getByRole('button',{name:'Logg inn',exact:true}).boundingBox();
   assert.ok(button.height>=44&&button.width>=44,'touch target');
   await page.screenshot({path:`evidence/account-public-${width}x${height}.png`,fullPage:true});
  }

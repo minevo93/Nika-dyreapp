@@ -24,7 +24,7 @@ node tests/server.cjs
 - Turer med varighet, tidsfestede hendelser, angre og historikk. Korte turer lagres i sekunder.
 - Valgfri GPS med eksplisitt aktivering, pause og lagrede ruter uten bakgrunnskart.
 - Daglig måltidsplan og separat, datert historikk over måltider som er gitt.
-- Kontoinnlogging med e-postkode. Utlogging avslutter kontoøkten og går til forsiden.
+- Kontoinnlogging med e-post og eget passord. Nye brukere bekrefter e-posten med engangskode før de velger passord. Eksisterende brukere kan opprette passord fra Min konto eller via «Opprett eller glemt passord». Utlogging avslutter kontoøkten og går til forsiden.
 - Familiedeling med separate private og delte oversikter, engangskoder, medlemskontroll og beskyttelse mot overskriving fra samtidige enheter.
 - Eksport og bekreftet sletting av data. Navnelister for familiens oppgaver gir ikke kontotilgang.
 
@@ -52,6 +52,7 @@ Følg grenbeskyttelse og godkjenningskrav før merge. Kontroller etter publiseri
 
 ```sh
 npm run test:account
+node tests/password.cjs
 node tests/gps.cjs
 node tests/family.cjs
 npx playwright install --with-deps chromium
@@ -60,6 +61,7 @@ node tests/responsive.cjs
 node tests/registration.cjs
 node tests/multi-pet.cjs
 node tests/account-browser.cjs
+node tests/password-browser.cjs
 node tests/pet-photo.cjs
 node tests/gps-browser.cjs
 node tests/family-browser.cjs
@@ -77,3 +79,11 @@ Account- og familietester bruker simulerte tjenester for brukergrensesnittet. Se
 - Lokal modus har ingen passordbeskyttelse eller ekstern sikkerhetskopi. Gammel demodata beholdes for å unngå datatap.
 - Ingen generell AI-rådgivning, aktiv QR-ID, butikk eller individuelle helse-/kostråd.
 - Dyrets alder er alder ved registrering og oppdateres manuelt. Illustrasjonene av Nika og Tyra er merkevareillustrasjoner, ikke brukerens profilbilder.
+
+## Passord
+
+Supabase Auth håndterer passord; appen lagrer dem ikke i dyredata, nettleserlagring eller logger. Opprettelse og endring bruker `updateUser` på den verifiserte kontoen, slik at konto-ID, dyr og medlemskap beholdes. Skjemaet krever minst 12 tegn og maksimalt 72 UTF-8-byte. Serverens gjeldende passordregler gjelder i tillegg.
+
+«Opprett eller glemt passord» bekrefter eksisterende e-post med OTP og oppretter aldri en ny konto (`shouldCreateUser: false`). Førstegangsregistrering bruker en separat handling. Etter kodebekreftelse verifiserer appen økten på serveren før passordskjema og data åpnes. Vanlig passordinnlogging sender ingen kode. Hvis serveren krever ny bekreftelse ved passordendring, kan brukeren be om en bekreftelseskode fra skjemaet.
+
+Passordtestene bruker en kontrollert Auth-tjeneste. De verifiserer flyt og SDK-kall, men endrer ikke virkelige brukeres passord og bekrefter ikke levering av e-post. Etter publisering må en bruker selv velge passord og bekrefte at påfølgende innlogging fungerer på sin konto.

@@ -49,7 +49,7 @@ const fs=require('node:fs');
  await assert.rejects(()=>h.a.verifyEmailCode('12345678'),/feil eller utløpt/);assert.equal(h.calls.some(x=>x[0]==='navigate'),false);
  clock=61000;await h.a.requestEmailCode('person@gmail.com');
  h.client.auth.verifyOtp=async request=>{h.calls.push(['email-verify',request]);return {data:{session:{}},error:null}};
- await h.a.verifyEmailCode('12345678');assert.equal(h.calls.find(x=>x[0]==='email-verify')[1].email,'person@gmail.com');assert.deepEqual(h.calls.at(-1),['navigate',config.redirectTo]);assert.equal(h.a.user,null,'boot must verify identity before loading animals');
+ await h.a.verifyEmailCode('12345678');assert.equal(h.calls.find(x=>x[0]==='email-verify')[1].email,'person@gmail.com');assert.deepEqual(h.calls.at(-1),['navigate',config.redirectTo+'?password=setup']);assert.equal(h.a.user,null,'boot must verify identity before loading animals');
  assert.equal(h.values.get('nika-demo-v2'),'local-data');assert.equal([...h.values.values()].includes('12345678'),false);
  h=harness({config:{...config,emailEnabled:true},origin:()=> 'https://evil.invalid'});await assert.rejects(()=>h.a.requestEmailCode('person@hotmail.com'),/offentlige/);
  h=harness();await assert.rejects(()=>h.a.requestEmailCode('person@hotmail.com'),/ikke aktivert/);

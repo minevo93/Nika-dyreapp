@@ -1553,3 +1553,16 @@ body.has-bottom-nav .header .demo-tag { display: none; }
 .sharing-consent input {flex:0 0 24px;width:24px;min-height:24px;margin-top:5px;accent-color:#315b49}
 #invite-code {width:100%;resize:vertical;font:inherit;overflow-wrap:anywhere;padding:12px;border:1px solid #bac9b8;border-radius:12px}
 #sharing-form .form-actions {margin-top:16px}
+
+/* Account password forms: compact, accessible and usable in phone landscape. */
+.auth-form { display:grid; gap:12px; margin-block:16px; }
+.auth-form p { margin:0; }
+.auth-form input { width:100%; min-width:0; }
+.auth-form [hidden] { display:none; }
+.password-field { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; }
+.password-field button { min-width:48px; padding-inline:8px; }
+.auth-links { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; }
+.auth-links .text-button { text-align:left; font-size:14px; }
+#password-reauth { display:grid; gap:10px; padding:14px; border-radius:14px; background:var(--sage); }
+#password-reauth[hidden] { display:none; }
+#password-status:empty, #account-error:empty { display:none; }

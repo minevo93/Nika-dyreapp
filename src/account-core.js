@@ -3,7 +3,7 @@ export function createAccount({config, createClient, storage = () => window.loca
   let client, user = null, revision = null, queue = Promise.resolve(), failed = null, generation = 0, signingIn = false;
   const listeners = new Set();
   let workspace = "personal", familyInfo = null;
-  let emailBusy = false, pendingEmail = '', nextEmailAt = 0;
+  let emailBusy = false, pendingEmail = '', nextEmailAt = 0, passwordBusy = false, nextReauthAt = 0;
   const signal = (type, detail) => listeners.forEach(fn => fn(type, detail));
   function getClient() {
     if (!config.enabled) throw Error('Kontoinnlogging er ikke aktivert ennå.');
@@ -39,17 +39,19 @@ export function createAccount({config, createClient, storage = () => window.loca
     if (origin() !== new URL(config.redirectTo).origin) throw Error('Åpne Nika på den offentlige nettadressen for å logge inn.');
     if (user) throw Error('Logg ut før du bytter konto.');
   }
-  async function requestEmailCode(address) {
+  async function requestEmailCode(address, purpose = 'signup') {
     emailReady();
+    if (!['signup','password'].includes(purpose)) throw Error('Velg registrering eller opprett nytt passord.');
     const email = String(address || '').trim();
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Error('Skriv en gyldig e-postadresse.');
-    if (emailBusy) throw Error('Vent til forespørselen er ferdig.');
+    if (emailBusy || passwordBusy) throw Error('Vent til forespørselen er ferdig.');
     if (now() < nextEmailAt) throw Error('Vent ett minutt før du ber om en ny kode.');
     emailBusy = true;
     try {
       if (!(await providers()).email) throw Error('E-postinnlogging er ikke klar ennå.');
-      const {error} = await getClient().auth.signInWithOtp({email, options:{shouldCreateUser:true, emailRedirectTo:config.redirectTo}});
-      if (error) throw Error('Kunne ikke sende kode. Vent litt og prøv igjen, eller kontakt support.');
+      const {error} = await getClient().auth.signInWithOtp({email, options:{shouldCreateUser:purpose === 'signup', emailRedirectTo:config.redirectTo}});
+      // Recovery never creates accounts or reveals whether an address is registered.
+      if (error && !(purpose === 'password' && error.code === 'otp_disabled')) throw Error('Kunne ikke sende kode. Vent litt og prøv igjen, eller kontakt support.');
       pendingEmail = email; nextEmailAt = now() + 60000;
     } finally { emailBusy = false; }
   }
@@ -58,15 +60,65 @@ export function createAccount({config, createClient, storage = () => window.loca
     const token = String(value || '').trim();
     if (!pendingEmail) throw Error('Be om en kode først.');
     if (!/^\d{8}$/.test(token)) throw Error('Skriv den åttesifrede koden fra e-posten.');
-    if (emailBusy) throw Error('Vent til forespørselen er ferdig.');
+    if (emailBusy || passwordBusy) throw Error('Vent til forespørselen er ferdig.');
     emailBusy = true;
     try {
       const {data,error} = await getClient().auth.verifyOtp({email:pendingEmail, token, type:'email'});
       if (error || !data.session) throw Error('Koden er feil eller utløpt. Prøv igjen eller be om en ny kode.');
       // Never grant access from form values: boot verifies the session with getUser.
       pendingEmail = '';
-      navigate(config.redirectTo);
+      const target = new URL(config.redirectTo);
+      target.searchParams.set('password','setup');
+      navigate(target.href);
     } finally { emailBusy = false; }
+  }
+  async function signInPassword(address, password) {
+    emailReady();
+    const email=String(address || '').trim();
+    if(email.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Error('Skriv en gyldig e-postadresse.');
+    if(typeof password!=='string' || !password || password.length>1024) throw Error('Skriv passordet ditt.');
+    if(emailBusy || passwordBusy) throw Error('Vent til forespørselen er ferdig.');
+    passwordBusy=true;
+    try {
+      const {data,error}=await getClient().auth.signInWithPassword({email,password});
+      if(error || !data?.session) throw Error('Kunne ikke logge inn. Kontroller e-post og passord, eller velg «Opprett eller glemt passord».');
+      navigate(config.redirectTo);
+    } finally {passwordBusy=false;}
+  }
+  async function verifiedOwner() {
+    if(!user) throw Error('Du må logge inn først.');
+    const owner=user.id, epoch=generation;
+    const {data,error}=await getClient().auth.getUser();
+    if(error || data?.user?.id!==owner || generation!==epoch || user?.id!==owner) throw Error('Økten kunne ikke bekreftes. Logg inn på nytt.');
+    return {owner,epoch};
+  }
+  async function setPassword(password, nonce = '') {
+    if(typeof password!=='string' || password.length<12 || new TextEncoder().encode(password).length>72) throw Error('Bruk minst 12 tegn og maksimalt 72 byte. Norske tegn kan bruke flere byte.');
+    if(nonce && !/^\d{6,8}$/.test(nonce)) throw Error('Skriv bekreftelseskoden fra e-posten.');
+    if(passwordBusy) throw Error('Vent til forespørselen er ferdig.');
+    passwordBusy=true;
+    try {
+      const {owner,epoch}=await verifiedOwner();
+      const {data,error}=await getClient().auth.updateUser({password,...(nonce?{nonce}:{})});
+      if(error) {
+        const messages={reauthentication_needed:'Bekreft e-posten på nytt før du endrer passord.',reauthentication_not_valid:'Bekreftelseskoden er feil eller utløpt.',same_password:'Velg et annet passord enn det du allerede bruker.',weak_password:'Passordet ble avvist. Velg et lengre, unikt passord.'};
+        const e=Error(messages[error.code] || 'Passordet kunne ikke lagres. Prøv igjen. Ved fortsatt feil: logg ut og velg «Opprett eller glemt passord».');
+        e.code=error.code; throw e;
+      }
+      if(data?.user?.id!==owner || generation!==epoch || user?.id!==owner) throw Error('Økten er endret. Logg inn på nytt.');
+      // Passwords never enter animal payloads, browser storage, metadata or logs.
+    } finally {passwordBusy=false;}
+  }
+  async function requestPasswordConfirmation() {
+    if(passwordBusy) throw Error('Vent til forespørselen er ferdig.');
+    if(now()<nextReauthAt) throw Error('Vent ett minutt før du ber om en ny kode.');
+    passwordBusy=true;
+    try {
+      await verifiedOwner();
+      const {error}=await getClient().auth.reauthenticate();
+      if(error) throw Error('Kunne ikke sende bekreftelseskoden. Prøv igjen senere.');
+      nextReauthAt=now()+60000;
+    } finally {passwordBusy=false;}
   }
   async function signIn(provider) {
     if (!['google','azure'].includes(provider)) throw Error('Velg Google eller Microsoft.');
@@ -179,7 +231,7 @@ export function createAccount({config, createClient, storage = () => window.loca
     if (error) throw Error('Dataene kunne ikke slettes. Prøv igjen.');
     revision = null;
   }
-  return {enabled:config.enabled,providers,signIn,requestEmailCode,verifyEmailCode,restore,access,load,save,signOut,removeData,familyContext,familyAction,switchWorkspace,
+  return {enabled:config.enabled,providers,signIn,signInPassword,setPassword,requestPasswordConfirmation,requestEmailCode,verifyEmailCode,restore,access,load,save,signOut,removeData,familyContext,familyAction,switchWorkspace,
     get workspace(){return workspace;}, get family(){return familyInfo;},
     get user(){return user;}, get failed(){return failed;}, on(fn){listeners.add(fn);return()=>listeners.delete(fn);}};
 }
