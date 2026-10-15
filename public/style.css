@@ -249,7 +249,7 @@ main {
   height: 34px;
 }
 .note-one {
-  top: 65px;
+  top: 170px;
   left: -20px;
   transform: rotate(-5deg);
 }
@@ -508,7 +508,7 @@ main {
   width: 250px;
   right: 30px;
   bottom: -55px;
-  transform: rotate(-4deg);
+  transform: none;
 }
 .date {
   font-size: 11px;
@@ -957,7 +957,7 @@ footer p {
     font-size: 11px;
   }
   .note-one {
-    top: 65px;
+    top: 120px;
     left: -10px;
   }
   .note-two {
@@ -1126,8 +1126,8 @@ footer p {
     max-width: 220px;
   }
   .banner-dog {
-    width: 170px;
-    bottom: -10px;
-    right: -24px;
+    width: 140px;
+    bottom: 0;
+    right: 4px;
   }
 }

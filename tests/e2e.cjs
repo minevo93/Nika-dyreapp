@@ -78,7 +78,7 @@ async function store(p) {
   pass('Publiseringsheadere følger appen, også uten Netlify Git-bygg');
   const mascot = p.locator('.dog-scene > img');
   await mascot.evaluate((img) => img.decode());
-  assert.match(await mascot.getAttribute('src'), /nika-dog-reference-v2\.webp$/);
+  assert.match(await mascot.getAttribute('src'), /nika-dog-(reference-v2|duo-v3)\.webp$/);
   assert.equal(await mascot.evaluate((img) => img.naturalWidth), 930);
   pass('Referansebasert Nika-maskot lastes fra egen optimalisert WebP');
   await p.screenshot({
