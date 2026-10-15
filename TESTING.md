@@ -1,6 +1,18 @@
 # Verifisering – Nika demo v2
 
-## Gjeldende produksjon – knapper, ikoner og fokus, 15. oktober 2026
+## Gjeldende produksjon – eget domene, 15. oktober 2026
+
+- Hovedadresse: https://www.nikaappen.no/. Rotdomene og HTTP videresender til HTTPS på www (kontrollert med gyldig TLS).
+- Deploy `6ad132cbc7be86312eea6201`: production, ready, publisert 22:08 Oslo. Webkode `8dd768fb5f6cc2a9f4d3e190da686cf22578deaf`, testcommit `84341e25a5bce2b198fae62b9753f60c3264e866`, gren `feat/nika-demo-v2`, PR #1.
+- [Før publisering](https://github.com/minevo93/Nika-dyreapp/actions/runs/38799108234): success. [Offentlig test på www](https://github.com/minevo93/Nika-dyreapp/actions/runs/38799679494): success. SHA-256 bekrefter appfilene, inkludert kontobundle og illustrasjon.
+- Chromium 151.0.7922.34 / Playwright 1.62.1 på Ubuntu GitHub Actions uten Netlify-innlogging: 20 funksjonsgrupper, 17 registreringseksempler, 11 flerprofilgrupper, ti skjermstørrelser, rotasjon, tastatur og redusert bevegelse. Ingen konsollfeil eller manglende ressurser. Ikke fysisk telefon, Safari eller Firefox.
+- Supabase Site URL og eksakt tillatt returadresse er `https://www.nikaappen.no/`, verifisert etter ny sidelasting. Tidligere eksakt Netlify-returadresse beholdes i overgangsperioden. Ingen wildcard lagt til.
+- Appens OAuth-returadresse er oppdatert og simulert SDK-test bestått. Google/Microsoft er fortsatt deaktivert; ingen ekte OAuth-innlogging er testet. Google Cloud viste «Site Unavailable» i arbeidsnettleseren; Microsoft krever eierpålogging. GPS, reell familiedeling og administratorrollen gjenstår.
+- Netlify-opplastingen lyktes etter ett nytt forsøk på en generisk forbindelsesfeil. Ingen andre prosjekter eller teaminnstillinger ble endret.
+
+Bevis: [Supabase-innstillinger](docs/screenshots/domain-supabase-settings.jpg), [forside mobil](docs/screenshots/domain-live-orientation-onboarding-390x844.jpg), [dashboard mobil](docs/screenshots/domain-live-compact-dashboard-mobile.jpg).
+
+## Tidligere produksjon – knapper, ikoner og fokus, 15. oktober 2026
 
 - Deploy `6ad0eba9e31e68278e8adc63`, production, ready, publisert kl. 17:05 Oslo. Webkode `64e22133e39b5d5f756c5d0801a36a4467bd1024`, testcommit `de5d0d2c6622d671c27ce231acdb233d80b6c72e`, samme gren og PR.
 - [Test før publisering](https://github.com/minevo93/Nika-dyreapp/actions/runs/38756161583): success. [Offentlig produksjonstest](https://github.com/minevo93/Nika-dyreapp/actions/runs/38757743940): success. SHA-256 bekrefter identiske publiserte webfiler.

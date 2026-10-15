@@ -4,9 +4,11 @@
 
 En norsk, lokal webdemo for dyrehverdagen. Vanlig HTML, CSS og JavaScript, uten rammeverk, byggesteg eller backend.
 
-**Live og offentlig testet:** https://nika-dyreapp.netlify.app/
+**Hovedadresse:** https://www.nikaappen.no/
 
-Produksjonsdeploy `6ad0eba9e31e68278e8adc63` er `ready`, publisert 15. oktober 2026 kl. 17:05 Oslo-tid til eksisterende Nika-prosjekt. Webkode: `64e22133e39b5d5f756c5d0801a36a4467bd1024` på `feat/nika-demo-v2` (PR #1). Blå rammer er erstattet med grønt tastaturfokus, og programmatisk navigasjon tegner ikke ramme rundt hele siden. Knapper har diskret dybde og trykkrespons, bunnmenyen har ikoner og tekst, og profilens forbokstav åpner profilredigering. Personvernlenken beholder tilgang til eksport og sletting. Alle eksisterende tekster og lokale funksjoner er bevart. Testresultater og skjermbilder finnes i [TESTING.md](TESTING.md).
+Supabase Site URL og appens OAuth-returadresse er oppdatert til hovedadressen. `nikaappen.no` videresender til `www`. Lokale profiler på det gamle Netlify-domenet overføres ikke automatisk mellom domener; data er ikke slettet eller lastet opp.
+
+Produksjonsdeploy `6ad132cbc7be86312eea6201` er `ready`, publisert 15. oktober 2026 kl. 22:08 Oslo-tid til eksisterende Nika-prosjekt. Webkode: `8dd768fb5f6cc2a9f4d3e190da686cf22578deaf` på `feat/nika-demo-v2` (PR #1). Blå rammer er erstattet med grønt tastaturfokus, og programmatisk navigasjon tegner ikke ramme rundt hele siden. Knapper har diskret dybde og trykkrespons, bunnmenyen har ikoner og tekst, og profilens forbokstav åpner profilredigering. Personvernlenken beholder tilgang til eksport og sletting. Alle eksisterende tekster og lokale funksjoner er bevart. Testresultater og skjermbilder finnes i [TESTING.md](TESTING.md).
 
 ## Kjør lokalt
 
@@ -40,7 +42,7 @@ Ingen analyse, nettverks-API-er, eksterne fonter, posisjonsinnsamling eller hemm
 
 ## Netlify
 
-Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `64e22133e39b5d5f756c5d0801a36a4467bd1024` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
+Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `8dd768fb5f6cc2a9f4d3e190da686cf22578deaf` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
 
 Netlifys Developer settings er kontrollert og viser **Current repository: Not linked**. Dette er derfor et manuelt produksjonsdeploy, ikke automatisk Git-publisering. Ingen konto- eller repository-tilgang er utvidet for å koble Git. Før en eventuell senere Git-kobling med produksjonsgren `main` må den ferdige koden merges med nødvendig godkjenning, slik at en eldre main-versjon ikke erstatter demoen.
 
