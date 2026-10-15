@@ -78,9 +78,9 @@ async function store(p) {
   pass('Publiseringsheadere følger appen, også uten Netlify Git-bygg');
   const mascot = p.locator('.dog-scene > img');
   await mascot.evaluate((img) => img.decode());
-  assert.match(await mascot.getAttribute('src'), /nika-dog-(reference-v2|duo-v3)\.webp$/);
+  assert.match(await mascot.getAttribute('src'), /nika-dog-duo-v3\.webp$/);
   assert.equal(await mascot.evaluate((img) => img.naturalWidth), 930);
-  pass('Referansebasert Nika-maskot lastes fra egen optimalisert WebP');
+  pass('Nika og den hvite hunden lastes sammen fra optimalisert WebP');
   await p.screenshot({
     path: path.join(evidence, "onboarding-desktop.png"),
     fullPage: true,
@@ -207,6 +207,9 @@ async function store(p) {
   assert.equal((await store(p)).family.length, 0);
   pass("Familie CRUD med lokale roller og tydelig begrensning");
   await nav(p, "Oversikt");
+  assert.match(await p.locator('.banner-dog').getAttribute('src'), /nika-dog-duo-v3\.webp$/);
+  assert.match(await p.locator('.profile-art').getAttribute('src'), /nika-dog-reference-v2\.webp$/);
+  await p.locator('.welcome-banner img, .profile-art').evaluateAll(imgs => Promise.all(imgs.map(img => img.decode())));
   await p.screenshot({
     path: path.join(evidence, "dashboard-desktop.png"),
     fullPage: true,
