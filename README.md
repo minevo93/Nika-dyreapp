@@ -31,7 +31,7 @@ Ingen analyse, nettverks-API-er, eksterne fonter, posisjonsinnsamling eller hemm
 
 Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`, produksjonsgren `main`.
 
-`netlify.toml` publiserer **public/**, uten build-kommando. Kun de fem tilsiktede webfilene i public publiseres; dokumentasjon, tester, node_modules og testbevis ligger utenfor. `.netlify/` ignoreres og skal ikke committes.
+`netlify.toml` publiserer **public/**, uten build-kommando. Bare appfilene og Netlifys `_headers`-fil inngår; dokumentasjon, tester, node_modules og testbevis ligger utenfor. `.netlify/` ignoreres og skal ikke committes. `_headers` sikrer at også direkte ZIP-publisering får sikkerhetsheaderne, uten et Git-bygg.
 
 Forhåndsvisning via PR/Netlify Git-kobling, eller `netlify deploy --site 8d14e785-89c3-412a-9fce-acbd2113e653 --dir public`. Produksjon etter bestått test: Git-deploy fra main, eller samme CLI med `--prod`. En senere Git-deploy fra main erstatter et manuelt produksjonsdeploy. Ikke endre andre prosjekter eller teamets innstillinger.
 

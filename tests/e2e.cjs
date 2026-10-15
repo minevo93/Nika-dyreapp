@@ -49,8 +49,8 @@ async function store(p) {
 (async () => {
   if (!process.env.NIKA_TEST_URL) {
     server = spawn(
-      "python3",
-      ["-m", "http.server", "4173", "--directory", path.join(root, "public")],
+      process.execPath,
+      [path.join(__dirname, "server.cjs")],
       { stdio: "ignore" },
     );
     for (let i = 0; i < 30; i++) {
@@ -72,7 +72,10 @@ async function store(p) {
   browser = await chromium.launch(launch);
   console.log("BROWSER", browser.version());
   let { ctx, p } = await fresh({ viewport: { width: 1440, height: 1000 } });
-  await p.goto(base);
+  const response = await p.goto(base);
+  assert.match(response.headers()['content-security-policy'] || '', /default-src 'self'/);
+  assert.equal(response.headers()['x-content-type-options'], 'nosniff');
+  pass('Publiseringsheadere følger appen, også uten Netlify Git-bygg');
   await p.screenshot({
     path: path.join(evidence, "onboarding-desktop.png"),
     fullPage: true,
@@ -257,6 +260,13 @@ async function store(p) {
   }
   pass("Dashboard uten horisontal overflyt ved 390/768/1440 og 44 px knapper");
   await click(p, "privacy");
+  const downloadPromise = p.waitForEvent('download');
+  await click(p, 'export');
+  const download = await downloadPromise;
+  assert.equal(download.suggestedFilename(), 'nika-data.json');
+  const exported = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+  assert.equal(exported.current.dog.name, 'Luna');
+  pass('Dataeksport laster ned gyldig JSON under produksjonens sikkerhetsregler');
   await click(p, "reset");
   await click(p, "close");
   assert.ok((await store(p)).dog);
