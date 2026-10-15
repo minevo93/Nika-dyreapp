@@ -25,7 +25,8 @@
     const canvas=document.createElement('canvas');
     for(const size of [320,256,192,128]) {
       canvas.width=canvas.height=size;draw(canvas,img,crop);
-      const data=canvas.toDataURL('image/webp',.78);
+      let data=canvas.toDataURL('image/webp',.78);
+      if(!data.startsWith('data:image/webp;'))data=canvas.toDataURL('image/jpeg',.78);
       if(valid(data))return data;
     }
     throw Error('Bildet kunne ikke komprimeres. Prøv et annet bilde.');

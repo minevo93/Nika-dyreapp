@@ -1536,7 +1536,7 @@ body.has-bottom-nav .header .demo-tag { display: none; }
 #data-location { font-size: 11px; }
 @media(max-width:760px) {
  .pet-controls { margin: 0 20px 16px; display: grid; grid-template-columns: minmax(0,1fr); }
- .pet-picker { width: 100%; }
+ .pet-picker { width: 100%; max-width: none; }
  .pet-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
  .pet-actions .btn { min-width: 0; padding: 9px 4px; font-size: 12px; gap: 4px; }
  .pet-actions .btn .icon { width: 18px; }
