@@ -968,22 +968,46 @@ footer p {
   }
   .dog-scene {
     min-height: 0;
-    width: min(100%, 310px);
+    width: min(100%, 380px);
     margin-top: 0;
     gap: 4px;
   }
   .dog-scene > img {
     height: 210px;
     object-fit: contain;
+    margin-bottom: 44px;
   }
   .dog-scene .floating-note {
     display: flex;
-    position: static;
+    position: absolute;
     transform: none;
-    width: 100%;
-    padding: 7px 10px;
+    max-width: calc(100% - 8px);
+    padding: 8px 10px;
     font-size: 12px;
-    gap: 8px;
+    line-height: 1.4;
+    gap: 7px;
+    border-radius: 14px;
+    z-index: 1;
+  }
+  .dog-scene .note-one {
+    width: 176px;
+    top: 122px;
+    left: 4px;
+  }
+  .dog-scene .note-two {
+    width: 220px;
+    top: 181px;
+    bottom: auto;
+    right: 4px;
+  }
+  .dog-scene .floating-note .icon {
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+  }
+  .dog-scene .floating-note b {
+    font-size: 12px;
+    margin-bottom: 1px;
   }
   .floating-note {
     font-size: 10px;
@@ -1212,15 +1236,38 @@ footer p {
   .dog-scene > img {
     height: clamp(140px, 45vh, 210px);
     object-fit: contain;
+    margin-bottom: 96px;
   }
   .dog-scene .floating-note {
     display: flex;
-    position: static;
+    position: absolute;
     transform: none;
-    width: 100%;
+    max-width: calc(100% - 8px);
     padding: 6px 8px;
     gap: 6px;
     font-size: 11px;
+    line-height: 1.4;
+    z-index: 1;
+  }
+  .dog-scene .note-one {
+    width: 166px;
+    top: calc(clamp(140px, 45vh, 210px) * .58);
+    left: 4px;
+  }
+  .dog-scene .note-two {
+    width: 206px;
+    top: calc(clamp(140px, 45vh, 210px) * .58 + 68px);
+    bottom: auto;
+    right: 4px;
+  }
+  .dog-scene .floating-note .icon {
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+  }
+  .dog-scene .floating-note b {
+    font-size: 11px;
+    margin-bottom: 1px;
   }
   .duo-story {
     font-size: 11px;
