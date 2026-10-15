@@ -231,7 +231,16 @@ export function createAccount({config, createClient, storage = () => window.loca
     if (error) throw Error('Dataene kunne ikke slettes. Prøv igjen.');
     revision = null;
   }
-  return {enabled:config.enabled,providers,signIn,signInPassword,setPassword,requestPasswordConfirmation,requestEmailCode,verifyEmailCode,restore,access,load,save,signOut,removeData,familyContext,familyAction,switchWorkspace,
+  async function support(action, body = {}) {
+    if (!user) throw Error('Logg inn for å åpne support.');
+    if (!['messages','send','close','users','threads'].includes(action)) throw Error('Ukjent handling.');
+    const owner=user.id, epoch=generation;
+    const {data,error}=await getClient().rpc('nika_support',{action,body});
+    if (generation!==epoch || user?.id!==owner) throw Error('Økten er endret. Logg inn på nytt.');
+    if (error) throw Error(error.code==='42501'?'Du har ikke tilgang til denne oversikten.':error.message==='Too many messages'?'Vent ett minutt før du sender flere meldinger.':'Kunne ikke hente eller lagre supportdata. Prøv igjen.');
+    return data;
+  }
+  return {enabled:config.enabled,providers,signIn,signInPassword,setPassword,requestPasswordConfirmation,requestEmailCode,verifyEmailCode,restore,access,load,save,signOut,removeData,support,familyContext,familyAction,switchWorkspace,
     get workspace(){return workspace;}, get family(){return familyInfo;},
     get user(){return user;}, get failed(){return failed;}, on(fn){listeners.add(fn);return()=>listeners.delete(fn);}};
 }

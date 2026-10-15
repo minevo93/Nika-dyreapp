@@ -1566,3 +1566,29 @@ body.has-bottom-nav .header .demo-tag { display: none; }
 #password-reauth { display:grid; gap:10px; padding:14px; border-radius:14px; background:var(--sage); }
 #password-reauth[hidden] { display:none; }
 #password-status:empty, #account-error:empty { display:none; }
+
+.history-actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+.walk-note { font-size:14px; overflow-wrap:anywhere; }
+.check-option { display:flex; align-items:center; gap:12px; padding:12px; border-radius:14px; background:var(--sage); }
+.check-option input { width:22px; min-height:44px; accent-color:var(--green); }
+.help-steps { padding-left:22px; line-height:1.6; }
+.help-steps li { margin-bottom:12px; }
+.photo-preview-wrap { position:relative; width:min(100%,220px); margin:auto; }
+.photo-preview-wrap canvas { width:100%; height:auto; }
+#photo-placeholder { position:absolute; inset:0; display:grid; place-content:center; text-align:center; padding:24px; color:var(--muted); pointer-events:none; }
+#photo-placeholder[hidden] { display:none; }
+.photo-upload { position:relative; display:grid; place-items:center; min-height:48px; border-radius:14px; background:var(--sage); color:var(--green); font-weight:650; cursor:pointer; }
+.photo-upload input { position:absolute; inset:0; width:100%; opacity:0; cursor:pointer; }
+.photo-upload:focus-within { outline:2px solid var(--green); outline-offset:3px; }
+/* Account navigation stays compact and within reach while scrolling. */
+.header{position:sticky;top:0;z-index:30;background:#faf9f2;padding-top:max(10px,env(safe-area-inset-top));padding-bottom:10px;gap:12px;}
+.header-tools{display:flex;gap:6px;margin-left:auto;align-items:center}.header #account-button{min-height:44px;padding:10px 14px;font-size:14px}
+.icon-button{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:9px;border:1px solid #dce3d5;border-radius:14px;background:#edf1e7;color:#315c49;cursor:pointer;flex-shrink:0}
+.icon-button .icon{width:24px;height:24px;margin:0}.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.menu-grid .btn{width:100%;padding:12px;font-size:15px}.login-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px}
+.support-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.support-heading h2{margin:0;font-size:clamp(23px,4vw,30px);overflow-wrap:anywhere}.support-tools,.support-tabs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0}.support-tabs [aria-pressed=true]{background:#315c49;color:white}
+.support-messages{padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;max-height:36dvh;overflow:auto;overscroll-behavior:contain}.support-messages li{border-radius:16px;padding:12px 14px;max-width:94%;background:#e8eee1;overflow-wrap:anywhere}.support-messages li.support-answer{background:#315c49;color:#fff;align-self:flex-start}.support-messages li.support-question{align-self:flex-end}.support-messages li>div{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}.support-messages time{font-size:11px;opacity:.85}.support-messages p{margin:6px 0 0;white-space:pre-wrap;font-size:15px;line-height:1.5}.support-view textarea{resize:vertical;min-height:84px}.support-view .field{margin-bottom:10px}.support-view .subline{font-size:13px}.support-view .btn.small{min-height:44px}
+.admin-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.admin-stats>div{background:#e8eee1;border-radius:16px;padding:14px;display:grid;gap:4px}.admin-stats strong{font-size:28px}.admin-stats span{font-size:13px}.admin-list{padding:0;list-style:none;margin:12px 0}.admin-list li{display:grid;gap:4px;padding:12px 0;border-bottom:1px solid #dce3d5;overflow-wrap:anywhere}.admin-list span,.admin-list small{font-size:13px;color:#657365}.thread-button{display:grid;text-align:left;gap:5px;background:none;border:0;color:inherit;width:100%;padding:8px;cursor:pointer;min-height:64px}.thread-button small{display:flex;align-items:center;gap:10px}.thread-button .icon{width:18px;height:18px}.thread-button strong{font-size:16px}#admin-search{display:flex;gap:8px;align-items:end}#admin-search .field{flex:1;min-width:0;margin:0}#admin-search input{width:100%;min-width:0}
+@media(max-width:600px){.header{gap:6px;padding-left:16px;padding-right:16px}.header .brand{gap:8px}.header .brand>img{width:32px;height:32px}.header .brand>span{font-size:30px}.header .brand small{font-size:8px;letter-spacing:3px}.header #account-button{padding:8px 10px;font-size:12px}.header-tools{gap:4px}.header-tools .icon-button{width:40px;min-width:40px;height:44px;padding:8px}.header:has(.header-tools button) #account-button{width:44px;padding:10px}.header:has(.header-tools button) #account-button span:not(.icon){display:none}.header:has(.header-tools button) .brand>span{font-size:25px}.header:has(.header-tools button) .brand small{font-size:6px;letter-spacing:2px}.header:has(.header-tools button) .brand>img{width:28px;height:28px}.support-view .form-actions{gap:8px}.support-view{font-size:15px}.login-footer .btn{padding:12px;font-size:14px}}
+@media(orientation:landscape) and (max-height:500px){.header{padding-top:5px;padding-bottom:5px}.support-messages{max-height:30dvh}}
+
+.header .icon-button:focus-visible{outline:2px solid #315c49;outline-offset:3px}.header #account-button .icon{width:20px;height:20px;margin:0}

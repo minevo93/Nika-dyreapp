@@ -26,6 +26,7 @@ async function fresh(options = {}) {
     timezoneId: "Europe/Oslo",
     ...options,
   });
+  await require('./legacy-fixture.cjs')(ctx);
   const p = await ctx.newPage();
   p.on("pageerror", (e) => errors.push(e.message));
   p.on("console", (m) => {
@@ -131,7 +132,7 @@ async function store(p) {
   assert.equal(await p.locator("#dog-sex").inputValue(), "Hunn");
   pass("Profilredigering og lagring etter oppdatering");
   await nav(p, "Turer");
-  await p.locator('[data-action="startwalk"]').dblclick();
+  await p.locator('[data-action="startwalk"]').dblclick();await click(p,"startwalk-confirm");
   await p.locator('[data-action="pee"]').dblclick();
   await click(p, "poop");
   assert.equal((await store(p)).active.events.length, 2);
@@ -409,7 +410,7 @@ async function store(p) {
   await click(p, "give");
   assert.equal((await store(p)).feedings.length, 2);
   await nav(p, "Turer");
-  await click(p, "startwalk");
+  await click(p, "startwalk");await click(p,"startwalk-confirm");
   await p.clock.fastForward(120000);
   await click(p, "endwalk");
   assert.ok(
@@ -429,7 +430,7 @@ async function store(p) {
     };
   });
   await nav(p, "Turer");
-  await click(p, "startwalk");
+  await click(p, "startwalk");await click(p,"startwalk-confirm");
   assert.match(
     await p.locator("#storage-alert").innerText(),
     /Kunne ikke lagre/,

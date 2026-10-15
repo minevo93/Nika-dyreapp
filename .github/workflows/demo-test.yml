@@ -1,4 +1,4 @@
-name: Nika demo browser tests
+name: Nika browser tests
 on:
   pull_request:
   push:
@@ -23,6 +23,7 @@ jobs:
       - run: node tests/multi-pet.cjs
       - run: node tests/account-browser.cjs
       - run: node tests/password-browser.cjs
+      - run: node tests/support-browser.cjs
       - run: node tests/pet-photo.cjs
       - run: node tests/gps.cjs && node tests/family.cjs
       - run: node tests/gps-browser.cjs

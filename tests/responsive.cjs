@@ -27,6 +27,7 @@ async function photo(p, name) {
   console.log('RESPONSIVE_BROWSER',browser.version());
   for(const [width,height] of sizes) {
     const ctx = await browser.newContext({viewport:{width,height},timezoneId:'Europe/Oslo'});
+    await require('./legacy-fixture.cjs')(ctx);
     const p = await ctx.newPage();
     p.on('pageerror',e=>errors.push(e.message));
     p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
@@ -100,6 +101,7 @@ async function photo(p, name) {
     await ctx.close();
   }
   const rotationContext = await browser.newContext({viewport:{width:390,height:844}});
+  await require('./legacy-fixture.cjs')(rotationContext);
   const rotation = await rotationContext.newPage();
   await rotation.goto(base);
   await rotation.locator('#answer').fill('Luna');

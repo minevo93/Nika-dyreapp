@@ -3,7 +3,8 @@ let browser,server;const base=process.env.NIKA_TEST_URL||'http://127.0.0.1:4173'
 (async()=>{
 if(!process.env.NIKA_TEST_URL){server=spawn(process.execPath,[path.join(__dirname,'server.cjs')],{stdio:'ignore'});for(let i=0;i<30;i++){try{await fetch(base);break}catch{await new Promise(r=>setTimeout(r,100))}}}
 browser=await chromium.launch();const ctx=await browser.newContext({viewport:{width:390,height:844},geolocation:{latitude:59,longitude:10,accuracy:5},permissions:['geolocation']});
-const p=await ctx.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto(base);await p.locator('#answer').fill('Luna golden retriever 3 år');await p.locator('#onboard-form button').click();await p.locator('[data-action="confirm"]').click();await p.locator('[data-action="startwalk"]').first().click();
+await require('./legacy-fixture.cjs')(ctx);
+const p=await ctx.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto(base);await p.locator('#answer').fill('Luna golden retriever 3 år');await p.locator('#onboard-form button').click();await p.locator('[data-action="confirm"]').click();await p.locator('[data-action="startwalk"]').first().click();await p.locator('[data-action="startwalk-confirm"]').click();
 assert.equal(await p.locator('[data-action="gps-start"]').count(),1);await p.locator('[data-action="gps-start"]').click();await p.waitForFunction(()=>JSON.parse(localStorage.getItem('nika-demo-v2')).active.gps?.length===1);
 await p.locator('[data-action="gps-stop"]').focus();
 await p.waitForTimeout(5100);await ctx.setGeolocation({latitude:59.001,longitude:10.001,accuracy:5});await p.waitForFunction(()=>JSON.parse(localStorage.getItem('nika-demo-v2')).active.gps.length===2);

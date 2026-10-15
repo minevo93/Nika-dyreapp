@@ -15,6 +15,7 @@
     <script src="account.bundle.js" defer></script>
     <script src="pet-photo.js" defer></script>
     <script src="gps.js" defer></script>
+<script src="support.js" defer></script>
 <script src="app.js" defer></script>
   </head>
   <body>
@@ -26,7 +27,7 @@
         ></a
       >
       <nav aria-label="Hovedmeny" id="nav"></nav>
-      <span class="demo-tag"><i></i> Lokal demo</span>
+      <span class="account-tag" hidden></span><div id="header-tools" class="header-tools"></div>
       <button id="account-button" class="btn secondary" data-action="account" hidden>Logg inn</button>
     </header>
     <div id="pet-controls" class="pet-controls" hidden></div>
@@ -37,11 +38,11 @@
         >Nika<span>Små øyeblikk. Et godt dyreliv.</span></a
       >
       <p class="partnership">I samarbeid med <a href="https://www.miveno.no" rel="noopener">www.miveno.no</a> &amp; <a href="https://www.pusterom.eu" rel="noopener">www.pusterom.eu</a></p>
-      <p id="data-location" hidden>Kun på denne enheten · Ingen deling · Ingen sikkerhetskopi</p>
+      <p id="data-location" hidden>Lagret på kontoen</p>
       <button class="text-button" data-action="privacy">
         Personvern og dine data
       </button>
-      <a class="text-button" href="mailto:support.nika@miveno.no">Kontakt Nika-support</a>
+      <button class="text-button" data-action="support">Kontakt Nika-support</button>
     </footer>
     <div id="toast" role="status" aria-live="polite"></div>
     <dialog id="dialog" aria-labelledby="dialog-title">

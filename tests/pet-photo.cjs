@@ -4,7 +4,7 @@ let browser,server;
  const base=process.env.NIKA_TEST_URL||'http://127.0.0.1:4173';
  if(!process.env.NIKA_TEST_URL){server=spawn(process.execPath,[path.join(__dirname,'server.cjs')],{stdio:'ignore'});for(let i=0;i<30;i++){try{await fetch(base);break}catch{await new Promise(r=>setTimeout(r,100))}}}
  browser=await chromium.launch();const p=await browser.newPage({viewport:{width:390,height:844}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
- await p.goto(base);await p.locator('#answer').fill('Luna blandingshund 3 år');await p.locator('#answer').press('Enter');await p.getByRole('button',{name:'Ja, opprett profilen',exact:true}).click();
+ await require('./legacy-fixture.cjs')(p);await p.goto(base);await p.locator('#answer').fill('Luna blandingshund 3 år');await p.locator('#answer').press('Enter');await p.getByRole('button',{name:'Ja, opprett profilen',exact:true}).click();
  assert.equal(await p.locator('#pet-controls #account-button').count(),1,'account control grouped with pet controls');
  const data=await p.evaluate(()=>{const c=document.createElement('canvas');c.width=600;c.height=400;const ctx=c.getContext('2d');ctx.fillStyle='#b86c3b';ctx.fillRect(0,0,300,400);ctx.fillStyle='#486b52';ctx.fillRect(300,0,300,400);return c.toDataURL('image/png').split(',')[1]});
  const slide=(id,value)=>p.locator(id).evaluate((el,v)=>{el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}))},value);
