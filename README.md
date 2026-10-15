@@ -4,7 +4,7 @@ En norsk, lokal webdemo for hundehverdagen. Vanlig HTML, CSS og JavaScript, uten
 
 **Live og offentlig testet:** https://nika-dyreapp.netlify.app/
 
-Produksjonsdeploy `6ad0a678d17c33ffa3e78a71` er `ready`, publisert 15. oktober 2026 via Netlify Drop til det eksisterende Nika-prosjektet. Nika og den hvite hunden sitter nå sammen i velkomstbildet og dashboardbanneret, basert på brukerens referansebilder og godkjente illustrasjon. Profilkortet beholder Nika alene; ingen ekstra hund legges til brukerdata. Alle 20 testgruppene besto mot HTTPS-adressen i en ren Chromium-nettleser uten Netlify-innlogging. Se [produksjonstesten](https://github.com/minevo93/Nika-dyreapp/actions/runs/38718441471) og [TESTING.md](TESTING.md).
+Produksjonsdeploy `6ad0ab11dac7f520701ace97` er `ready`, publisert 15. oktober 2026 kl. 12:29 Oslo-tid via Netlify Drop til det eksisterende Nika-prosjektet. Appnavnet er Nika; Nika og Tyra er ansiktene og historien bak. Hundene er flyttet foran chatten på stående mobil og står ved siden av den på korte, liggende skjermer. Profilkortet og brukerdataene er uendret. Alle 20 funksjonstestgruppene, ti skjermstørrelser og en rotasjonssekvens besto mot offentlig HTTPS uten Netlify-innlogging. Se [produksjonstesten](https://github.com/minevo93/Nika-dyreapp/actions/runs/38720783576) og [TESTING.md](TESTING.md).
 
 ## Kjør lokalt
 
@@ -34,7 +34,7 @@ Ingen analyse, nettverks-API-er, eksterne fonter, posisjonsinnsamling eller hemm
 
 ## Netlify
 
-Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `318dc798ad1db2e6a2604c76b261dafb77571be2` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
+Bruk eksisterende prosjekt `nika-dyreapp`, team `minevo93`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Repository: `minevo93/Nika-dyreapp`. Publiserte webfiler tilsvarer commit `e7b5f49ce0b520913a05712bcfe809a559959128` på `feat/nika-demo-v2`. Koden og dokumentasjonen er samlet i PR #1. `main` er ikke endret.
 
 Netlifys Developer settings er kontrollert og viser **Current repository: Not linked**. Dette er derfor et manuelt produksjonsdeploy, ikke automatisk Git-publisering. Ingen konto- eller repository-tilgang er utvidet for å koble Git. Før en eventuell senere Git-kobling med produksjonsgren `main` må den ferdige koden merges med nødvendig godkjenning, slik at en eldre main-versjon ikke erstatter demoen.
 
@@ -65,4 +65,4 @@ Den hvite hunden er lagt til i en egen transparent [duoillustrasjon](docs/mascot
 
 ## Utført kvalitetssikring
 
-Se [TESTING.md](TESTING.md) for 20 beståtte nettlesertestgrupper mot offentlig produksjon, faktisk miljø og mobil-/desktopskjermbilder. Ingen JavaScript-feil, konsollfeil eller manglende appressurser ble registrert i produksjonstesten. Ikke testet på fysisk telefon, Firefox eller Safari.
+Se [TESTING.md](TESTING.md) for 20 beståtte funksjonstestgrupper, ti skjermstørrelser og rotasjon mot offentlig produksjon, faktisk miljø og skjermbilder i stående, liggende og desktopformat. Ingen JavaScript-feil, konsollfeil eller manglende appressurser ble registrert i produksjonstesten. Ikke testet på fysisk telefon, Firefox eller Safari.

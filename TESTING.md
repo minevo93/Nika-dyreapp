@@ -1,6 +1,28 @@
 # Verifisering – Nika demo v2
 
-## Gjeldende produksjon – Nika og den hvite hunden
+## Gjeldende produksjon – mobilplassering og Nika og Tyra
+
+- Live: https://nika-dyreapp.netlify.app/
+- Deploy `6ad0ab11dac7f520701ace97`, **ready**, publisert 15. oktober 2026 kl. 12:29 Oslo-tid. Eksisterende Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`, kun Nika-prosjektet. Ingen nye prosjekter, kontoendringer eller betalte tjenester.
+- Publiserte webfiler: `e7b5f49ce0b520913a05712bcfe809a559959128`, gren `feat/nika-demo-v2`. Appnavn fortsatt Nika. Ny tekst: «Møt Nika og Tyra», «To firbente bestevenninner» og «Inspirasjonen bak Nika». Historien finnes også under «Om demoen og dine data».
+- Stående mobil: bilde og historie før chatten, kompakt overskrift og ingen overliggende kort som dekker hundene. Liggende mobil: bilde til venstre, chat til høyre. Innhold kan scrolles naturlig; ingen fastlåst sidehøyde. Minst 540 px bredde kreves for liggende-oppsettet, slik at et åpent tastatur på en smal, stående skjerm ikke bytter oppsett.
+- Forhåndstest: [38720521089](https://github.com/minevo93/Nika-dyreapp/actions/runs/38720521089), **20 funksjonstestgrupper + ti visningsstørrelser + rotasjon bestått**.
+- Offentlig produksjon uten Netlify-innlogging: [38720783576](https://github.com/minevo93/Nika-dyreapp/actions/runs/38720783576), samme dekning bestått. Testcommit `97b10fc12d0a893ce940eda3fa546122826f76b4`.
+- Chromium 151.0.7922.34 / Playwright 1.62.1, Ubuntu GitHub Actions. Registrering, turer, måltider, familie, eksport, sletting, migrering, lagringsfeil, datooverganger, dobbelklikk, tastaturfokus og redusert bevegelse testet på nytt. Ingen JavaScript-/konsollfeil eller manglende ressurser. Testdata finnes bare i isolerte nettleserkontekster.
+- Faktiske visningsstørrelser: 320×568, 390×844, 430×932, 568×320, 667×375, 844×390, 932×430, 768×1024, 1024×768 og 1440×1000 CSS-piksler. Ingen horisontal overflyt. Synlige registreringsknapper minst 44×44 px. Registrering og dashboard virker og beholder profil etter oppdatering i alle ti formatene.
+- Rotasjonstest: stegvis navn, bytte til liggende, skrive rase, redusere til 390×360 (simulert tastaturhøyde), tilbake til stående, alder og bekreftelse i liggende. Ingen tap av lagret fremdrift eller ikke-innsendt tekst ved størrelsesendring.
+- Målt i produksjon: ved 390×844 ligger bildefeltet fra y=254 til y=464, og chatten starter ved y=551. Ved 844×390 ligger bildefeltet fra y=160 til y=336, ved siden av chatten. Begge hundene er dermed synlige i første skjermbilde i de testede mobilformatene.
+- Visuell kontroll av stående/liggende registrering og dashboard, samt desktop. Offentlig side åpnet også i Chrome. Målinger tas etter innlastingsanimasjon; desktop har en tilsiktet 0,5° vinkel på chatten, med 4 px geometrisk toleranse i testen.
+- Mobil er nettleseremulering, ikke fysisk telefon. Tastaturhøyde er simulert, ikke en faktisk iOS-/Android-tastaturtest. Safari og Firefox er ikke testet. Ingen nye kjente funksjonsfeil innen dekningen.
+- Dataformat, lokale brukerdata og originale hundefoto er urørt. Fortsatt lokal demo og manuell publisering; PR #1 er åpen og main uendret.
+
+| Skjerm | Stående mobil 390×844 | Liggende mobil 844×390 | Desktop 1440×1000 |
+| --- | --- | --- | --- |
+| Registrering | [Skjermbilde](docs/screenshots/layout-v4-live-orientation-onboarding-390x844.jpg) | [Skjermbilde](docs/screenshots/layout-v4-live-orientation-onboarding-844x390.jpg) | [Skjermbilde](docs/screenshots/layout-v4-live-onboarding-desktop.jpg) |
+| Dashboard | [Skjermbilde](docs/screenshots/layout-v4-live-orientation-dashboard-390x844.jpg) | [Skjermbilde](docs/screenshots/layout-v4-live-orientation-dashboard-844x390.jpg) | [Skjermbilde](docs/screenshots/layout-v4-live-dashboard-desktop.jpg) |
+
+
+## Tidligere produksjon – Nika og den hvite hunden
 
 - Live: https://nika-dyreapp.netlify.app/
 - Deploy `6ad0a678d17c33ffa3e78a71`, **ready**, publisert 15. oktober 2026 kl. 12:10 Oslo-tid. Samme eksisterende Nika-prosjekt og Site ID; ingen endringer i andre prosjekter eller innstillinger.
