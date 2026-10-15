@@ -1,5 +1,28 @@
 # Verifisering – Nika demo v2
 
+## Offentlig produksjon – verifisert
+
+**Live:** https://nika-dyreapp.netlify.app/
+
+- Netlify Site ID: `8d14e785-89c3-412a-9fce-acbd2113e653`, kun prosjekt `nika-dyreapp` i team `minevo93`.
+- Produksjonsdeploy: `6ad08a19fec92ad38a193f62`, status **ready**, publisert 15. oktober 2026 kl. 10:08 Oslo-tid via Netlify Drop.
+- Publisert appkode og sikkerhetsregler: commit `618eba1485087c8cc596a327eb6f4f91ee22877c`, gren `feat/nika-demo-v2`. Senere commits gjelder tester, rapport og bilder. Alle fem offentlig serverte filene er i tillegg sammenlignet byte for byte med lokale kildefiler: identiske.
+- **19/19 bestått mot den offentlige HTTPS-adressen**, i Chromium 151.0.7922.34 med Playwright 1.62.1 i isolerte nettleserkontekster uten Netlify-konto/cookies: [produksjonskjøring](https://github.com/minevo93/Nika-dyreapp/actions/runs/38703780099).
+- Testet registrering, korrigering, profil, oppdatering, aktiv tur, hendelser/angre, korte/lengre turer, måltider, midnatt, familie, eksport, sletting, migrering, utilgjengelig/full/korrupt lagring, dobbelklikk, trygg tekst, tastaturfokus, redusert bevegelse og 390/768/1440 px.
+- Ingen konsoll-/JavaScript-feil eller manglende appressurser under testene. Kun oppdiktede lokale testprofiler; ingen testdata lastes opp til appens statiske filer. Ingen fysisk telefon, Firefox eller Safari er testet.
+- Netlify behandlet én headerregel uten feil; offentlig HTTP-respons bekrefter CSP, `nosniff`, Permissions-Policy, Referrer-Policy og rammebeskyttelse.
+- Netlify General bekrefter riktig Site ID og offentlig produksjon. Developer settings bekrefter **Current repository: Not linked**. Automatisk Git-publisering er ikke konfigurert. PR #1 står åpen; tidligere stopp av merge til `main` er ikke omgått.
+- Kun Nikas egen `public`-mappe ble lastet opp til Nikas eget Netlify-prosjekt. Ingen andre prosjekter, teaminnstillinger eller betalte tjenester er endret.
+
+Faktiske skjermbilder fra produksjonstesten:
+
+| Skjerm | Desktop (1440 px) | Mobilbredde (390 px) |
+| --- | --- | --- |
+| Førstegangsopplevelse | [Live onboarding](docs/screenshots/live-onboarding-desktop.jpg) | [Live onboarding](docs/screenshots/live-onboarding-mobile.jpg) |
+| Dashboard | [Live dashboard](docs/screenshots/live-dashboard-desktop.jpg) | [Live dashboard](docs/screenshots/live-dashboard-mobile.jpg) |
+
+Ingen kjente funksjonsfeil ble funnet innen testdekningen. Dette er fremdeles en lokal demo, ikke en backend-basert tjeneste; begrensningene er oppgitt i README og i appen.
+
 ## Ny kontroll: isolert direktepublisering
 
 Commit `618eba1485087c8cc596a327eb6f4f91ee22877c` besto **19 av 19 testgrupper** i [denne GitHub Actions-kjøringen](https://github.com/minevo93/Nika-dyreapp/actions/runs/38702551606). Samme Chromium-versjon og bredder som under.
@@ -11,7 +34,7 @@ I tillegg til de 17 kontrollene nedenfor er følgende verifisert:
 
 Nika-pakken inneholder kun `index.html`, `style.css`, `app.js`, `_headers` og de to SVG-filene i `assets/`. Den inneholder ingen testprofiler, andre prosjekter, dokumentasjon eller nøkler. På Netlify skal den bare lastes inn i `nika-dyreapp`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`. Ingen andre prosjekter eller teaminnstillinger skal endres.
 
-Netlify-administrasjon viser fortsatt innlogging i arbeidsøkten. Det er ingen verifisert live-deploy. Ny sikker innlogging fikk tidsavbrudd; direkte kontroll i Nika-prosjektets egen Netlify-fane viser også innloggingssiden. Publisering kan fortsette når brukeren har fullført innlogging i den overleverte nettleseren. Kode- og pakkekontroll er fullført uavhengig av denne tilgangsblokkeringen.
+Før publisering ble arbeidsøkten blokkert av Netlify-innlogging og tidsavbrudd i sikker innlogging. Brukeren fullførte deretter innloggingen i den overleverte nettleseren, og produksjonsdeployet og testen over ble fullført. Kontrollene i denne delen er fra før publisering.
 
 ## Tidligere kontroll og visuelle bevis
 
@@ -56,7 +79,9 @@ Bildene er faktiske nettleserskjermbilder fra den vellykkede kjøringen, ikke de
 | Førstegangsopplevelse | [Onboarding](docs/screenshots/onboarding-desktop.jpg) | [Onboarding](docs/screenshots/onboarding-mobile.jpg) |
 | Dashboard | [Dashboard](docs/screenshots/dashboard-desktop.jpg) | [Dashboard](docs/screenshots/dashboard-mobile.jpg) |
 
-## Publiseringsstatus og reell blokkering
+## Historikk: tidligere publiseringsblokkering
+
+Punktene nedenfor beskriver situasjonen før innloggingen ble fullført. De er erstattet av den verifiserte live-statusen øverst.
 
 - Eksisterende Netlify-prosjekt: `nika-dyreapp`, Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`, team `minevo93`.
 - Kun dette prosjektets besøkskontroll ble satt til offentlig med den tilkoblede Netlify-integrasjonen. Ingen andre prosjekter eller teaminnstillinger ble endret.
@@ -66,4 +91,4 @@ Bildene er faktiske nettleserskjermbilder fra den vellykkede kjøringen, ikke de
 - Baseline-, Netlify-forhåndsvisning og produksjonsdeploy er dermed blokkert av manglende fungerende administrasjons-/publiseringstilgang i denne økten. Lokal nettleserforhåndsvisning på GitHub-runneren er testet; det er ikke en offentlig Netlify-test.
 - Koden er klar med `publish = "public"` og ingen build-kommando. Neste nødvendige brukerhandling er å fullføre sikker Netlify-administrasjonsinnlogging for arbeidsøkten, slik at eksisterende Git-kobling og deploy kan kontrolleres og publisering utføres. Ikke opprett et nytt prosjekt.
 
-Denne statusen er ikke en bekreftelse på publisering. Netlify-headere og offentlig produksjonsflyt er ikke nettlesertestet før et reelt deploy finnes.
+Denne historiske blokkeringen er løst. Netlify-headere og den offentlige produksjonsflyten er nå testet som dokumentert øverst.
