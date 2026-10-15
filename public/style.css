@@ -1499,3 +1499,10 @@ dialog > #dialog-content > .muted { font-size: 13px; line-height: 1.5; }
   .welcome-top .welcome-second-line { display: inline; }
   .welcome-top .eyebrow { font-size: 9px; margin: 6px auto 4px; }
 }
+
+/* Compact email sign-in, with normal keyboard and mobile autofill support. */
+#email-login form { display:grid; gap:12px; margin-block:16px; }
+#email-login p { margin:0; overflow-wrap:anywhere; }
+#email-login input { width:100%; min-width:0; }
+#login-code { letter-spacing:.18em; font-variant-numeric:tabular-nums; }
+footer > a.text-button { display:inline-flex; align-items:center; min-height:44px; }

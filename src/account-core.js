@@ -1,7 +1,8 @@
-export function createAccount({config, createClient, storage = () => window.localStorage, fetcher = (...args) => fetch(...args), navigate = url => window.location.replace(url), origin = () => window.location.origin}) {
+export function createAccount({config, createClient, storage = () => window.localStorage, fetcher = (...args) => fetch(...args), navigate = url => window.location.replace(url), origin = () => window.location.origin, now = () => Date.now()}) {
   const storageKey = 'nika-auth-v1';
   let client, user = null, revision = null, queue = Promise.resolve(), failed = null, generation = 0, signingIn = false;
   const listeners = new Set();
+  let emailBusy = false, pendingEmail = '', nextEmailAt = 0;
   const signal = (type, detail) => listeners.forEach(fn => fn(type, detail));
   function getClient() {
     if (!config.enabled) throw Error('Kontoinnlogging er ikke aktivert ennå.');
@@ -30,7 +31,41 @@ export function createAccount({config, createClient, storage = () => window.loca
     const r = await fetcher(config.url+'/auth/v1/settings', {headers:{apikey:config.key}, signal:AbortSignal.timeout(12000)});
     if (!r.ok) throw Error('Kunne ikke kontrollere innloggingen. Prøv igjen.');
     const settings = await r.json();
-    return {google:settings.external?.google === true, azure:settings.external?.azure === true};
+    return {google:settings.external?.google === true, azure:settings.external?.azure === true, email:config.emailEnabled === true && settings.external?.email === true};
+  }
+  function emailReady() {
+    if (!config.enabled || !config.emailEnabled) throw Error('E-postinnlogging er ikke aktivert ennå.');
+    if (origin() !== new URL(config.redirectTo).origin) throw Error('Åpne Nika på den offentlige nettadressen for å logge inn.');
+    if (user) throw Error('Logg ut før du bytter konto.');
+  }
+  async function requestEmailCode(address) {
+    emailReady();
+    const email = String(address || '').trim();
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Error('Skriv en gyldig e-postadresse.');
+    if (emailBusy) throw Error('Vent til forespørselen er ferdig.');
+    if (now() < nextEmailAt) throw Error('Vent ett minutt før du ber om en ny kode.');
+    emailBusy = true;
+    try {
+      if (!(await providers()).email) throw Error('E-postinnlogging er ikke klar ennå.');
+      const {error} = await getClient().auth.signInWithOtp({email, options:{shouldCreateUser:true, emailRedirectTo:config.redirectTo}});
+      if (error) throw Error('Kunne ikke sende kode. Vent litt og prøv igjen, eller kontakt support.');
+      pendingEmail = email; nextEmailAt = now() + 60000;
+    } finally { emailBusy = false; }
+  }
+  async function verifyEmailCode(value) {
+    emailReady();
+    const token = String(value || '').trim();
+    if (!pendingEmail) throw Error('Be om en kode først.');
+    if (!/^\d{6}$/.test(token)) throw Error('Skriv den sekssifrede koden fra e-posten.');
+    if (emailBusy) throw Error('Vent til forespørselen er ferdig.');
+    emailBusy = true;
+    try {
+      const {data,error} = await getClient().auth.verifyOtp({email:pendingEmail, token, type:'email'});
+      if (error || !data.session) throw Error('Koden er feil eller utløpt. Prøv igjen eller be om en ny kode.');
+      // Never grant access from form values: boot verifies the session with getUser.
+      pendingEmail = '';
+      navigate(config.redirectTo);
+    } finally { emailBusy = false; }
   }
   async function signIn(provider) {
     if (!['google','azure'].includes(provider)) throw Error('Velg Google eller Microsoft.');
@@ -101,6 +136,6 @@ export function createAccount({config, createClient, storage = () => window.loca
     if (error) throw Error('Dataene kunne ikke slettes. Prøv igjen.');
     revision = null;
   }
-  return {enabled:config.enabled,providers,signIn,restore,load,save,signOut,removeData,
+  return {enabled:config.enabled,providers,signIn,requestEmailCode,verifyEmailCode,restore,load,save,signOut,removeData,
     get user(){return user;}, get failed(){return failed;}, on(fn){listeners.add(fn);return()=>listeners.delete(fn);}};
 }

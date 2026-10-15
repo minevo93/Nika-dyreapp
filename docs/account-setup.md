@@ -13,6 +13,17 @@ Arbeidsgren `feat/nika-demo-v2`. **Ikke aktivert eller publisert med ekte innlog
 - Nettlesertest av kontoarbeidsflyt med simulert tjeneste besto i Chromium via [GitHub Actions](https://github.com/minevo93/Nika-dyreapp/actions/runs/38730846008): kontodyr atskilt fra lokale dyr, profilredigering/oppdatering, ærlig familietekst, Microsoft-valg og utlogging til forsiden. De eksisterende funksjons- og layouttestene besto også. Ingen ekte OAuth-pålogging er testet.
 - Supabase sikkerhetskontroll etter migreringene: ingen merknader. Plattformens automatiske RLS-trigger hadde offentlige EXECUTE-rettigheter; disse er fjernet kun i Nika-prosjektet. Selve triggeren forblir aktiv.
 
+## E-postkode via Resend – under klargjøring
+
+Brukeren har bekreftet at **support.nika@miveno.no** er en fungerende kundesupportadresse. Adressen er lagt inn som kontaktlenke. Domenet er `miveno.no` (ikke antatt eller korrigert til et annet navn).
+
+- `requestEmailCode` / `verifyEmailCode` bruker Supabase Auth. Ny bruker opprettes ved verifisert e-postkode, uten administratorrettigheter. Sekssifret kode beholdes ikke i lokal lagring eller logger. Kontoidentiteten kontrolleres med `getUser` før dyredata åpnes.
+- E-postinnlogging har egen `emailEnabled: false`-bryter og overordnet `enabled: false`. Ingen reell sending eller innlogging er aktivert. Aktiver først etter SMTP-/leveringstest og verifisering av kontoseparasjon.
+- Resend krever eierpålogging. Domenestatus/DNS er ennå ikke kontrollert. Legg til kun Resends faktiske SPF/DKIM-poster for sending. Ikke erstatt eksisterende MX-poster for supportinnboksen. Ingen receiving-oppsett er nødvendig.
+- Bruk egen Nika-konfigurasjon/nøkkel med bare nødvendig sendingstilgang. Hemmelig nøkkel skal bare legges i Supabase Custom SMTP, aldri i kildekode eller chat. Sett avsendernavn `Nika` og avsender `support.nika@miveno.no` først når domenet er verifisert.
+- Supabase-maler for både **Confirm signup** og **Magic Link** må inneholde `{{ .Token }}`. Ferdig norsk mal ligger i `supabase/templates/email-code.html`. Bekreft seks sifre og kort utløpstid i Supabase. Behold e-postbekreftelse og serverens rate limits; frontend har i tillegg ett minutts ventetid og dobbelklikkvern.
+- Test ekte registrering, ny innlogging, feil/utløpt kode, ny kode, utlogging og at en annen konto ikke får dyredata. Ingen e-post er sendt som del av kodeforberedelsen.
+
 ## Eget domene
 
 Hovedadresse: `https://www.nikaappen.no/`. Netlify videresender rotdomenet dit, og HTTPS svarer. Appens faste OAuth-returadresse er oppdatert til samme URL. Supabase Site URL og eksakt Redirect URL er satt til denne adressen; den tidligere Netlify-returadressen beholdes under overgangen. Ingen wildcard er lagt til.
@@ -23,7 +34,7 @@ Lokale demodata er knyttet til nettadressen i nettleseren. Data fra den gamle Ne
 
 ## Det som blokkerer aktivering
 
-Kontroll 15. oktober kl. 17 Oslo: Site URL er lagret som `https://nika-dyreapp.netlify.app/`. Google og Azure er fortsatt av. Google Cloud viste «Site Unavailable» i arbeidsnettleseren også etter én oppdatering. Microsoft Entra åpnet en reell innloggingsside; sikker eierinnlogging kreves for videre appregistrering. SMTP er ikke aktivert.
+Kontroll 15. oktober kl. 22:30 Oslo: Site URL er `https://www.nikaappen.no/`. Google og Azure er fortsatt av. Google Cloud viste «Site Unavailable». Microsoft-kontoen er innlogget, men Entra avviser tilgang til organisasjonen Microsoft Services. SMTP er ikke aktivert. E-postkode via Resend klargjøres som alternativ.
 
 Eierens ønskede administratoradresse er kontrollert mot Auth Users, men har ennå ingen Nika-konto. Ingen administratorrolle er derfor tildelt. Rollen skal knyttes serverstyrt til en bekreftet Auth-bruker etter registrering, aldri gis gjennom frontend eller redigerbare brukermetadata. Alle øvrige brukere beholder vanlig tilgang. Dette gir ikke medlemskap eller administrasjon i Supabase-organisasjonen.
 

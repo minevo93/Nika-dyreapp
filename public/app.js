@@ -433,7 +433,7 @@
     d = defaults();
     onboarding();
     d = saved;
-    document.querySelector('.chat').innerHTML = `<div class="signed-out-home"><h2>Velkommen til Nika</h2><p>Et bedre liv sammen, én liten hverdag av gangen.</p>${account?.enabled ? btn("Logg inn med Google eller Microsoft","account","") : ""}${d.dog ? btn("Åpne mine lokale dyr","resume") : btn("Prøv den lokale demoen","resume")}<p class="muted">Demoen lagres bare på denne enheten. Lokale profiler krever ikke passord.</p></div>`;
+    document.querySelector('.chat').innerHTML = `<div class="signed-out-home"><h2>Velkommen til Nika</h2><p>Et bedre liv sammen, én liten hverdag av gangen.</p>${account?.enabled ? btn("Logg inn eller opprett konto","account","") : ""}${d.dog ? btn("Åpne mine lokale dyr","resume") : btn("Prøv den lokale demoen","resume")}<p class="muted">Demoen lagres bare på denne enheten. Lokale profiler krever ikke passord.</p></div>`;
   }
   function render(focus = false) {
     nav();
@@ -702,7 +702,7 @@
   }
   function privacy() {
     if (cloudMode) {
-      modal(`<h2 id="dialog-title">Dine data på kontoen</h2><p>Dyreprofiler og historikk lagres i Nika sitt separate Supabase-prosjekt i Stockholm. Bare den innloggede brukeren har tilgang. Familielisten gir ingen andre tilgang ennå.</p><p>Google eller Microsoft bekrefter identiteten din. Nika får ikke tilgang til innboksen din eller passordet ditt. Innlogging gir ingen administratortilgang.</p><p>Gamle demodata ligger fortsatt lokalt og lastes ikke opp automatisk. Denne versjonen har ennå ikke GPS eller familiedeling.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${btn("Slett dyredata på kontoen","cloud-reset","danger")}${btn("Lukk","close")}</div>`);
+      modal(`<h2 id="dialog-title">Dine data på kontoen</h2><p>Dyreprofiler og historikk lagres i Nika sitt separate Supabase-prosjekt i Stockholm. Bare den innloggede brukeren har tilgang. Familielisten gir ingen andre tilgang ennå.</p><p>Du bekrefter identiteten din med e-postkode eller en tilgjengelig innloggingstjeneste. Nika får ikke tilgang til innboksen din eller e-postpassordet ditt. Innlogging gir ingen administratortilgang.</p><p>Gamle demodata ligger fortsatt lokalt og lastes ikke opp automatisk. Denne versjonen har ennå ikke GPS eller familiedeling.</p><h3>Historien bak Nika</h3><p>Nika og Tyra er to firbente bestevenninner – og inspirasjonen bak appen.</p><div class="form-actions">${btn("Eksporter Nika-data","export")}${btn("Slett dyredata på kontoen","cloud-reset","danger")}${btn("Lukk","close")}</div>`);
       return;
     }
     modal(
@@ -1079,14 +1079,45 @@
       modal(`<h2 id="dialog-title">Min konto</h2><p>${html(account.user?.email || 'Innlogget bruker')}</p><p>Vanlig brukertilgang. Dine dyr og din historikk er private.</p>${blocked ? '<p class="notice">Du har ulagrede endringer. Eksporter dem før du forlater siden.</p>' : ''}<div class="form-actions">${btn("Logg ut","cloud-logout","")}${btn("Eksporter Nika-data","export")}${btn("Lukk","close")}</div><p id="account-error" class="error" role="alert"></p>`);
       return;
     }
-    modal(`<h2 id="dialog-title">Velkommen til Nika</h2><p>Registrer deg eller logg inn med kontoen du allerede har.</p><div class="account-options"><button class="btn secondary" data-action="google" disabled>Fortsett med Google</button><button class="btn secondary" data-action="azure" disabled>Fortsett med Microsoft</button></div><p class="muted">Microsoft støtter Hotmail, Outlook og Live. Nika får ikke tilgang til innboksen din.</p><p id="account-error" role="status">Kontrollerer tilgjengelig innlogging …</p><p class="muted">Lokale demodata lastes ikke opp automatisk. Du får en privat konto uten administratortilgang.</p>${btn("Lukk","close")}`);
+    modal(`<h2 id="dialog-title">Velkommen til Nika</h2><p>Logg inn eller opprett en privat konto.</p><div id="email-login" hidden></div><div class="account-options"><button class="btn secondary" data-action="google" hidden>Fortsett med Google</button><button class="btn secondary" data-action="azure" hidden>Fortsett med Microsoft</button></div><p id="account-error" role="status">Kontrollerer tilgjengelig innlogging …</p><p class="muted">Lokale demodata lastes ikke opp automatisk. Kontoen gir vanlig brukertilgang.</p><a class="text-button" href="mailto:support.nika@miveno.no">Kontakt Nika-support</a>${btn("Lukk","close")}`);
+    const emailBox = $('email-login');
     try {
       const available = await account.providers();
-      if (!$("dialog").open || !document.querySelector('[data-action="google"]')) return;
-      for (const provider of ['google','azure']) document.querySelector(`[data-action="${provider}"]`).disabled = !available[provider];
-      $("account-error").textContent = Object.values(available).every(Boolean) ? '' : 'Innlogging er under klargjøring. Bare aktive valg kan brukes.';
-    } catch { if ($('account-error')) $('account-error').textContent = 'Kunne ikke nå innloggingstjenesten. Lukk og prøv igjen.'; }
+      if (!$("dialog").open || $('email-login') !== emailBox) return;
+      for (const provider of ['google','azure']) document.querySelector(`[data-action="${provider}"]`).hidden = !available[provider];
+      if (available.email) { emailBox.hidden=false; emailLoginForm(emailBox); }
+      $("account-error").textContent = Object.values(available).some(Boolean) ? '' : 'Innlogging er under klargjøring. Prøv igjen senere.';
+    } catch { if ($('email-login') === emailBox) $('account-error').textContent = 'Kunne ikke nå innloggingstjenesten. Lukk og prøv igjen.'; }
   }
+  function emailLoginForm(box) {
+    let address = '', busy = false;
+    function show(codeStep) {
+      box.innerHTML = codeStep
+        ? `<form id="email-code-form"><p>Sjekk innboksen og søppelposten til <strong>${html(address)}</strong>.</p><label for="login-code">Engangskode</label><input id="login-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required placeholder="6 siffer"><button class="btn" type="submit">Bekreft og logg inn</button><button id="email-resend" class="text-button" type="button">Send ny kode</button><button id="email-change" class="text-button" type="button">Endre e-postadresse</button></form>`
+        : `<form id="email-address-form"><label for="login-email">E-postadresse</label><input id="login-email" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="deg@eksempel.no" value="${html(address)}"><p class="muted">Vi sender en engangskode. Første gang opprettes en konto når du bekrefter e-posten.</p><button class="btn" type="submit">Send innloggingskode</button></form>`;
+      const form = box.querySelector('form');
+      async function run(work) {
+        if (busy) return;
+        busy=true; form.setAttribute('aria-busy','true');
+        form.querySelectorAll('button,input').forEach(el=>el.disabled=true);
+        const status=$('account-error'); status.textContent='Vent litt …';
+        try { await work(); }
+        catch(error) { if (box.isConnected) status.textContent=error.message; }
+        finally { busy=false; form.removeAttribute('aria-busy'); form.querySelectorAll('button,input').forEach(el=>el.disabled=false); }
+      }
+      form.onsubmit = event => {
+        event.preventDefault();
+        if (codeStep) { const code=$('login-code').value; run(async()=>{await account.verifyEmailCode(code);}); }
+        else { address=$('login-email').value.trim(); run(async()=>{await account.requestEmailCode(address); if(box.isConnected){show(true);$('account-error').textContent='Kode forespurt. Sjekk e-posten din.';$('login-code').focus();}}); }
+      };
+      if (codeStep) {
+        $('email-change').onclick=()=>{if(!busy){show(false);$('account-error').textContent='';$('login-email').focus();}};
+        $('email-resend').onclick=()=>run(async()=>{await account.requestEmailCode(address); if(box.isConnected)$('account-error').textContent='Ny kode forespurt. Sjekk e-posten din.';});
+      }
+    }
+    show(false);
+  }
+
   async function handleAccountAction(action, button) {
     if (!account?.enabled) return;
     if (action === 'account') { await accountDialog(); return; }
