@@ -1,6 +1,33 @@
 # Verifisering – Nika demo v2
 
-## Gjeldende produksjon – mobilplassering og Nika og Tyra
+## Gjeldende produksjon – setninger, flere dyr og kompakt oversikt
+
+- Live: https://nika-dyreapp.netlify.app/
+- Deploy `6ad0b102d458b47e45e85b74`, **ready**, publisert 15. oktober 2026 kl. 12:55 Oslo-tid. Samme eksisterende Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`, kun Nika-prosjektets egne webfiler. Ingen andre prosjekter, konto-/teaminnstillinger eller betalte tjenester endret.
+- Publisert appkode: `a622736f91c3126ceafb9fd3304a3d8264f0a3d5`, gren `feat/nika-demo-v2`. Testcommit mot produksjon: `ce695fb0d65c4a19ff466cb7e0ec127c1821638d`. Senere rapport-/bildecommits endrer ikke webfilene. PR #1 er åpen og main uendret. Fortsatt manuelt publisert, ikke automatisk Git-deploy.
+- Forhåndsvisning: [38723312583](https://github.com/minevo93/Nika-dyreapp/actions/runs/38723312583), bestått. Offentlig HTTPS uten Netlify-innlogging: [38723795476](https://github.com/minevo93/Nika-dyreapp/actions/runs/38723795476), **bestått**.
+- Faktisk miljø: Chromium 151.0.7922.34 / Playwright 1.62.1 på Ubuntu GitHub Actions. 20 eksisterende og 11 nye nettlesertestgrupper, 17 parser-eksempler med ekstra ugyldig-/delvis-input-kontroller, ti visningsstørrelser og rotasjon bestått. Kun oppdiktede profiler i isolerte lokale nettleserkontekster, ikke publiserte testdata.
+- Setninger uten komma, blant annet «Jessica schæfer tispe 2 år» og «Hunden min heter Luna og er en golden retriever på 3 år.», ga riktige navn, rase og alder. Også katt, kjønn, delvise svar, ukjent/blandet rase, flerdelte navn, desimaltall og år/måneder testet. Oppsummering kan redigeres før lagring. Dette er regelstyrt registrering, ikke generell AI-forståelse.
+- Nye profiler holder turer, aktive turer, måltidsplan, gjennomførte måltider og favorittsteder atskilt. Familie er felles. Profilbytte, tredje dyr, artsredigering og oppdatering testet uten kryssendring. Aktiv tur på et inaktivt dyr fortsetter.
+- Påbegynt ekstra registrering beholdes ved oppdatering, pause og gjenopptakelse. Eksisterende profil erstattes ikke før bekreftet tillegg.
+- Lokal utlogging bekreftes, skjuler oversikten og beholdes ved oppdatering; gjenåpning virker uten passord og beholder data/pågående tur. Grensesnittet forklarer at dette ikke er sikker autentisering.
+- Det samlede «Hverdagen deres»-kortet har fire kompakte rader med fungerende handlinger. Kontrollert på stående mobil, liggende mobil og desktop, med minst 44 px knapper. Fanekonflikt blokkerer videre handlinger også i nye profilkontroller.
+- Eldre v2 oppgraderes først etter byte-for-byte lokal originalkopi. Profil, aktive turer og lister bevares. Feil ved kopiering/full lagring bevarer originalen og varsler mens appen virker i minnet. Korrupt inaktiv profil bevares og blokkerer skriving. To dyr og utlogging fungerer også i minnet ved utilgjengelig localStorage. Sletting fjerner alle tre Nika-nøkler, men beholder uvedkommende lagring.
+- Eksisterende funksjoner testet på nytt: profilredigering, oppdatering, turhendelser/angre, dobbelklikk, korrekt kort turvarighet, måltidsplan/registrering/angre/datoovergang, familie, favoritter, eksport, v1-migrering, korrupt/full/utilgjengelig lagring, trygg tekst, tastaturfokus, redusert bevegelse og sikkerhetsheadere.
+- Visningsstørrelser: 320×568, 390×844, 430×932, 568×320, 667×375, 844×390, 932×430, 768×1024, 1024×768 og 1440×1000 CSS-piksler. Ingen horisontal overflyt. Rotasjon og 390×360 simulert tastaturhøyde bevarer fremdrift og ikke-innsendt tekst. Nika og Tyra står fortsatt høyt, før chatten i stående format og ved siden av i kort liggende format.
+- Ingen registrerte JavaScript-/konsollfeil eller manglende appressurser. Ingen nye kjente funksjonsfeil innen testdekningen. Ikke fysisk telefon, Safari eller Firefox; tastaturhøyde og mobil er emulert.
+- Begrensninger: ingen ekte konto, sikker utlogging, backend, deling, GPS, generell AI, aktiv QR-ID eller butikk. Registrering kan korrigeres manuelt; parseren garanterer ikke vilkårlige setninger. Individuell profilsletting er ikke implementert; sletting gjelder alle Nika-data.
+
+Produksjonsskjermbilder (oppdiktet lokal testprofil):
+
+| Visning | Mobil | Liggende mobil | Desktop |
+| --- | --- | --- | --- |
+| Førstegangsopplevelse | [Registrering](docs/screenshots/multi-v5-live-onboarding-mobile.jpg) | Se forrige mobilplasseringskontroll nedenfor | [Registrering](docs/screenshots/multi-v5-live-onboarding-desktop.jpg) |
+| Samlet oversikt | [Dashboard](docs/screenshots/multi-v5-live-compact-dashboard-mobile.jpg) | [Dashboard](docs/screenshots/multi-v5-live-compact-dashboard-landscape.jpg) | [Dashboard](docs/screenshots/multi-v5-live-compact-dashboard-desktop.jpg) |
+
+[Setningsoppsummering](docs/screenshots/multi-v5-live-sentence-summary-mobile.jpg) · [Mine dyr](docs/screenshots/multi-v5-live-pet-switcher-mobile.jpg) · [Lokal utlogging](docs/screenshots/multi-v5-live-local-logout-mobile.jpg)
+
+## Tidligere produksjon – mobilplassering og Nika og Tyra
 
 - Live: https://nika-dyreapp.netlify.app/
 - Deploy `6ad0ab11dac7f520701ace97`, **ready**, publisert 15. oktober 2026 kl. 12:29 Oslo-tid. Eksisterende Site ID `8d14e785-89c3-412a-9fce-acbd2113e653`, kun Nika-prosjektet. Ingen nye prosjekter, kontoendringer eller betalte tjenester.
