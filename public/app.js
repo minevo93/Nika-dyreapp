@@ -3,8 +3,15 @@
   const account = window.NikaAccount;
   let cloudMode = false, cloudReady = false;
   const gps=window.NikaGPS.recorder({geolocation:navigator.geolocation,onPoint:()=>{save();updateGPS();},onStatus:()=>updateGPS()});
-  function updateGPS(){const panel=$('gps-panel');if(panel)panel.innerHTML=gpsPanel();}
-  function gpsPanel(){return `<p role="status">${html(gps.status)}</p><p class="subline">GPS er valgfritt og registrerer bare mens Nika er synlig. Ved skjermlås eller bytte av app pauses GPS. ${cloudMode && account.workspace==='family'?'Ruten deles med familien.':'Ruten lagres sammen med turen.'}</p><div class="form-actions">${btn(gps.active?'Sett GPS på pause':'Slå på GPS',gps.active?'gps-stop':'gps-start')}</div>${window.NikaGPS.route(d.active?.gps)}`;}
+  function updateGPS(){
+    const panel=$('gps-panel');if(!panel)return;
+    panel.querySelector('[data-gps-status]').textContent=gps.status;
+    const button=panel.querySelector('[data-action^="gps-"]');
+    button.textContent=gps.active?'Sett GPS på pause':'Slå på GPS';
+    button.dataset.action=gps.active?'gps-stop':'gps-start';
+    panel.querySelector('[data-gps-route]').innerHTML=window.NikaGPS.route(d.active?.gps);
+  }
+  function gpsPanel(){return `<p role="status" data-gps-status>${html(gps.status)}</p><p class="subline">GPS er valgfritt og registrerer bare mens Nika er synlig. Ved skjermlås eller bytte av app pauses GPS. ${cloudMode && account.workspace==='family'?'Ruten deles med familien.':'Ruten lagres sammen med turen.'}</p><div class="form-actions">${btn(gps.active?'Sett GPS på pause':'Slå på GPS',gps.active?'gps-stop':'gps-start')}</div><div data-gps-route>${window.NikaGPS.route(d.active?.gps)}</div>`;}
   const KEY = "nika-demo-v2",
     LEGACY = "nika-mvp-v1",
     PRE_MULTI = "nika-demo-v2-before-multi";
