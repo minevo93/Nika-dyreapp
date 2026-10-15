@@ -57,7 +57,7 @@ GitHub Actions kjører samme test. Resultater og skjermbilder ved 390 og 1440 px
 
 ## Begrensninger
 
-Ingen generell AI-chat, GPS/kart/ruter, brukerkontoer, database, enhetsdeling, aktiv QR-ID/finner-side, butikk, betaling eller individuelle helse-/kostråd. QR og butikk er skjult til de har fungerende arbeidsflyter. Profilbildet er en original SVG-illustrasjon laget til prosjektet, ikke en modell av brukerens faktiske hund. Alle illustrasjoner og ikoner i public/assets er laget for Nika og kan brukes med prosjektet.
+Ingen generell AI-chat, GPS/kart/ruter, brukerkontoer, database, enhetsdeling, aktiv QR-ID/finner-side, butikk, betaling eller individuelle helse-/kostråd. QR og butikk er skjult til de har fungerende arbeidsflyter. Nika-maskoten er en AI-generert illustrasjon basert på fire referansebilder brukeren har levert. Den er en merkevareillustrasjon, ikke et profilfoto av hver registrerte hund eller en interaktiv 3D-modell. Bare den avledede, optimaliserte WebP-filen publiseres; originalfotoene og bakgrunnene er ikke inkludert. Se [illustrasjonens kilde og prompt](docs/mascot-reference-v2.md). Den tidligere SVG-illustrasjonen er beholdt som en eldre ressurs.
 
 Designreferansefilen var ikke tilgjengelig i arbeidsmiljøet under implementeringen; den skriftlige retningen er fulgt. Nettleser- og publiseringsstatus må fremgå av leveransen.
 
