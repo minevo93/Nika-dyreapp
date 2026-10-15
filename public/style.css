@@ -28,12 +28,14 @@ body {
 }
 button,
 input,
+textarea,
 select {
   font: inherit;
 }
 button,
 a,
 input,
+textarea,
 select {
   touch-action: manipulation;
 }
@@ -57,6 +59,7 @@ button {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
+textarea:focus-visible,
 select:focus-visible {
   outline: 2px solid var(--green);
   outline-offset: 3px;
@@ -64,6 +67,7 @@ select:focus-visible {
 main:focus { outline: none; }
 button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
 input,
+textarea,
 select {
   min-height: 48px;
   max-width: 100%;
@@ -1592,3 +1596,8 @@ body.has-bottom-nav .header .demo-tag { display: none; }
 @media(orientation:landscape) and (max-height:500px){.header{padding-top:5px;padding-bottom:5px}.support-messages{max-height:30dvh}}
 
 .header .icon-button:focus-visible{outline:2px solid #315c49;outline-offset:3px}.header #account-button .icon{width:20px;height:20px;margin:0}
+
+.support-view textarea{width:100%;font-size:16px;line-height:1.5}.support-view .field{min-width:0}body.has-bottom-nav :focus{scroll-margin-top:110px}
+.support-view [hidden]{display:none}
+.icon-button:hover{background:#e2e9d9}.icon-button:active{background:#d5e1ca}
+.support-tabs .btn[aria-pressed=true],.support-tabs .btn[aria-pressed=true]:hover{background:#315c49;color:#fff}
