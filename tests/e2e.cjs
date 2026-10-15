@@ -76,6 +76,11 @@ async function store(p) {
   assert.match(response.headers()['content-security-policy'] || '', /default-src 'self'/);
   assert.equal(response.headers()['x-content-type-options'], 'nosniff');
   pass('Publiseringsheadere følger appen, også uten Netlify Git-bygg');
+  const mascot = p.locator('.dog-scene > img');
+  await mascot.evaluate((img) => img.decode());
+  assert.match(await mascot.getAttribute('src'), /nika-dog-reference-v2\.webp$/);
+  assert.equal(await mascot.evaluate((img) => img.naturalWidth), 930);
+  pass('Referansebasert Nika-maskot lastes fra egen optimalisert WebP');
   await p.screenshot({
     path: path.join(evidence, "onboarding-desktop.png"),
     fullPage: true,
